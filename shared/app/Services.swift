@@ -1,9 +1,12 @@
-// The browser host's services for the web Playground, injected by index.html
-// (docs/wasm_di.md): compiling runs in a Web Worker (swift-frontend.wasm +
-// wasm-ld.wasm when the toolchain bundle is present; a dev compile server
-// otherwise), running mounts the build in an overlay through hot_host.js,
-// and chat proxies OpenRouter with the key the page keeps in localStorage.
-// The Android Playground's Kotlin implements the same interface.
+// What the Isomer app asks of its host: compiling, running a reactor, the
+// chat's network, the renderer choice. The web page implements it in
+// index.html (docs/wasm_di.md): compiling runs in a Web Worker
+// (swift-frontend.wasm + wasm-ld.wasm when the toolchain bundle is present;
+// a dev compile server otherwise), running mounts the build in an overlay
+// through hot_host.js, and chat proxies OpenRouter with the key the page
+// keeps in localStorage. Android's Kotlin implements it through the
+// generated binding; the native hosts (iOS, macOS, Linux, Windows) in Swift,
+// setting `PlaygroundHost.service` before the app starts.
 
 import IsomerFFI
 
@@ -14,6 +17,25 @@ public enum PlaygroundHostKey: String {
 
 @ExportedInterface(namespace: "playground_web")
 public protocol PlaygroundHostService {
+    /// What this host can do, comma-separated: "projects" (it compiles),
+    /// "reactors" (it runs a reactor from a URL: hot reloaders),
+    /// "gallery-wasm" (it carries the Gallery's reactor, `bundle:gallery.wasm`),
+    /// "sign-in" (it links an OpenRouter account: `signIn`).
+    func capabilities() -> String
+    /// Signs in to OpenRouter in the system's web sign-in (PKCE) and keeps
+    /// the key it returns; returns a status line.
+    func signIn() async throws -> String
+    /// Runs the wasm reactor at `url` full screen, as `run` runs a build:
+    /// http(s), or `bundle:<name>` for one the app carries. `project` names
+    /// its home; `environment` is KEY=VALUE lines for the guest.
+    func runReactor(url: String, project: String, environment: String) async throws -> String
+    /// The renderers a run (or the app) can be drawn with, "Native,GPU"
+    /// (the component system's, the self-drawing one's), "" when one.
+    func rendererNames() -> String
+    /// When a change of renderer applies, for Settings.
+    func rendererFooter() -> String
+    /// The app's version, as the release shows it ("0.38.4").
+    func appVersion() -> String
     /// Compiles one App.swift; "" on success, else the diagnostics.
     func compile(source: String) async throws -> String
     /// Mounts the last successful build full screen; returns a status line.
@@ -66,4 +88,13 @@ public enum PlaygroundHost {
         (dependencies[PlaygroundHostKey.host] as? Lazy<any PlaygroundHostService>)?.value
             ?? dependencies[PlaygroundHostKey.host] as? any PlaygroundHostService
     }()
+}
+
+extension PlaygroundHostService {
+    func supports(_ capability: String) -> Bool {
+        capabilities().split(separator: ",").contains { $0 == capability }
+    }
+
+    func supportsProjects() -> Bool { supports("projects") }
+    func supportsReactors() -> Bool { supports("reactors") }
 }

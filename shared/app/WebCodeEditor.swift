@@ -6,6 +6,7 @@
 import Isomer
 import SwiftUI
 
+#if !(os(iOS) || os(macOS))
 struct CodeEditor: PlatformViewRepresentable {
     let text: Binding<String>
     let fileName: String
@@ -20,3 +21,4 @@ struct CodeEditor: PlatformViewRepresentable {
     var parameters: [String: String] { ["lang": fileName.hasSuffix(".swift") ? "swift" : "plain"] }
     func onValueChanged(_ value: String) { text.wrappedValue = value }
 }
+#endif
