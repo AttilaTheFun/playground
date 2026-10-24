@@ -8,17 +8,16 @@
 //   2. clang   --target=wasm32-unknown-wasip1 ... user.o + SDK archives
 //              + swiftrt + static stdlib -> reactor .wasm
 //
-// The BACKEND is a seam: on the simulator (an unhardened macOS process) the
-// toolchain binaries are posix_spawned from the host — paths injected by the
-// `:run` launcher via SIMCTL_CHILD_ISO_PLAYGROUND_*. The on-device backend
-// links swift-frontend + lld as static libraries behind this same interface.
+// The BACKEND is a seam: the iPhone links swift-frontend + lld into the app
+// (EmbeddedCompiler); the Mac carries them in its Resources
+// (playground_toolchain/, shared/compiler/toolchain.bzl) and runs them as
+// processes (shared/compiler's BundledToolchain, as Linux and Windows do),
+// with the same arguments (CompilerArguments);
+// on the simulator without the embedded compiler, the host toolchain is
+// posix_spawned, its paths injected by the `:run` launcher via
+// SIMCTL_CHILD_ISO_PLAYGROUND_*.
 
 import Foundation
-
-struct CompileError: Error {
-    /// Human-readable compiler/linker diagnostics.
-    var diagnostics: String
-}
 
 /// One parser/compiler diagnostic (`file:line:col: error: message`).
 struct SyntaxDiagnostic: Equatable {
@@ -45,6 +44,9 @@ enum ToolchainCompiler {
         let file = work.appendingPathComponent(fileName.isEmpty ? "Untitled.swift" : fileName)
         guard (try? source.write(to: file, atomically: true, encoding: .utf8)) != nil else { return [] }
         var raw = ""
+        if let bundled = bundledToolchain {
+            return parseDiagnostics(queue.sync { bundled.parseCheck(file: file, run: spawn) })
+        }
         #if ISO_PLAYGROUND_EMBEDDED
             if EmbeddedCompiler.isAvailable {
                 raw = queue.sync { EmbeddedCompiler.parseCheck(file: file) }
@@ -100,11 +102,28 @@ enum ToolchainCompiler {
         }
     }
 
+    /// The Mac's compiler: swift-frontend and wasm-ld in the app's Resources
+    /// (playground_toolchain/), run as processes.
+    static var bundledToolchain: BundledToolchain? {
+        Bundle.main.resourceURL.flatMap { BundledToolchain.at($0.appendingPathComponent("playground_toolchain")) }
+    }
+
+    /// A tool run as a process (Spawn: iOS hides Process), its stdout and
+    /// stderr together.
+    static func spawn(_ tool: String, _ arguments: [String], _ environment: [String: String]) -> (status: Int32, output: String) {
+        let result = Spawn.run(tool, arguments, environment: environment)
+        return (result.status, result.stderr + result.stdout)
+    }
+
     /// Whether ANY compile backend can work here right now.
     static var availability: String? {
+        if bundledToolchain != nil { return nil }
         #if ISO_PLAYGROUND_EMBEDDED
             if EmbeddedCompiler.isAvailable { return nil }
         #endif
+        #if os(macOS)
+        return "This Mac's Playground was built without its compiler (playground_toolchain is missing from its Resources)."
+        #else
         guard Spawn.isAvailable else {
             return "On-device compilation is not wired up yet — run in the "
                 + "simulator via `bazel run //apple/playground_ios_application:run`."
@@ -115,50 +134,11 @@ enum ToolchainCompiler {
                 + "ISO_PLAYGROUND_* env vars are injected."
         }
         return nil
+        #endif
     }
 
     /// The bundled SDK (playground_sdk resource directory + its manifest).
-    struct SDK {
-        var root: URL
-        var moduleDirectory: URL
-        var archives: [URL]
-        /// The hosts' entries (isomer 0.31's SDKs list them): exported, the
-        /// rest dead-stripped; nil exports everything.
-        var exports: [String]?
-        /// Clang modules the SDK's Swift modules import (module map + headers).
-        var clangModuleMaps: [URL] = []
-        var clangIncludeDirectories: [URL] = []
-
-        /// Frontend/driver arguments that make the clang modules resolvable.
-        var clangModuleArguments: [String] {
-            clangModuleMaps.flatMap { ["-Xcc", "-fmodule-map-file=" + $0.path] }
-                + clangIncludeDirectories.flatMap { ["-Xcc", "-I", "-Xcc", $0.path] }
-        }
-
-        static func bundled() throws -> SDK {
-            // rules_apple flattens tree-artifact resources into the bundle
-            // root (modules/, lib/, manifest.json land beside Info.plist);
-            // a named playground_sdk folder is accepted too.
-            let named = Bundle.main.url(forResource: "playground_sdk", withExtension: nil)
-            guard let root = named ?? Bundle.main.resourceURL,
-                FileManager.default.fileExists(
-                    atPath: root.appendingPathComponent("manifest.json").path)
-            else { throw CompileError(diagnostics: "playground_sdk resource missing from the app bundle") }
-            let manifestURL = root.appendingPathComponent("manifest.json")
-            guard let data = try? Data(contentsOf: manifestURL),
-                let manifest = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                let archiveList = manifest["archives"] as? [String]
-            else { throw CompileError(diagnostics: "playground_sdk manifest unreadable") }
-            let clang = (manifest["clang_modules"] as? [[String: Any]]) ?? []
-            return SDK(
-                root: root,
-                moduleDirectory: root.appendingPathComponent("modules"),
-                archives: archiveList.map { root.appendingPathComponent($0) },
-                exports: manifest["exports"] as? [String],
-                clangModuleMaps: clang.compactMap { ($0["modulemap"] as? String).map(root.appendingPathComponent) },
-                clangIncludeDirectories: clang.compactMap { ($0["include"] as? String).map(root.appendingPathComponent) })
-        }
-    }
+    typealias SDK = CompilerSDK
 
     // The stdlib the reactor links (the union bazel's autolink extraction
     // produces for a hot_demo-shaped reactor, plus the fixed wasi/c++ set).
@@ -178,6 +158,9 @@ enum ToolchainCompiler {
     }
 
     private static func compileSerialized(files: [URL]) throws -> Data {
+        if let bundled = bundledToolchain {
+            return try bundled.compile(files: files, sdk: try SDK.bundled(), run: spawn)
+        }
         #if ISO_PLAYGROUND_EMBEDDED
             if EmbeddedCompiler.isAvailable {
                 return try EmbeddedCompiler.compile(files: files, sdk: try SDK.bundled())
@@ -286,17 +269,22 @@ enum ToolchainCompiler {
         return bytes
     }
 
-    /// Strips absolute temp paths down to filenames so diagnostics read like
-    /// an editor's, not a build log's.
+    /// Strips absolute temp paths down to filenames, so diagnostics read
+    /// like an editor's, not a build log's.
     static func prettify(_ raw: String) -> String {
-        let pattern = "/[^\\s:]+/([A-Za-z0-9_ .-]+\\.swift)"
-        guard let regex = try? NSRegularExpression(pattern: pattern) else {
-            return raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        CompilerDiagnostics.prettify(raw)
+    }
+}
+
+extension CompilerSDK {
+    /// The SDK in the app's bundle. rules_apple flattens tree-artifact
+    /// resources into the bundle's resource root (modules/, lib/,
+    /// manifest.json land beside Info.plist); a named playground_sdk folder
+    /// is accepted too.
+    static func bundled() throws -> CompilerSDK {
+        guard let root = Bundle.main.url(forResource: "playground_sdk", withExtension: nil) ?? Bundle.main.resourceURL else {
+            throw CompileError(diagnostics: "playground_sdk resource missing from the app bundle")
         }
-        let text = NSMutableString(string: raw)
-        regex.replaceMatches(
-            in: text, range: NSRange(location: 0, length: text.length),
-            withTemplate: "$1")
-        return (text as String).trimmingCharacters(in: .whitespacesAndNewlines)
+        return try load(root: root)
     }
 }
