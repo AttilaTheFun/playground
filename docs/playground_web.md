@@ -118,11 +118,11 @@ above it) and alert actions sit side by side.
 
 ## Developing
 
-    bazel build -c opt //web/playground_web_application:playground_web_application_site \
-                //apple/playground_ios_application:playground_sdk
+    bazel build -c opt //playground/web/playground_web_application:playground_web_application_site \
+                //playground/apple/playground_ios_application:playground_sdk
     tools/playground/dev_compile_server.py \
-        --site bazel-bin/web/playground_web_application/playground_web_application_site \
-        --sdk bazel-bin/apple/playground_ios_application/playground_sdk \
+        --site bazel-bin/playground/web/playground_web_application/playground_web_application_site \
+        --sdk bazel-bin/playground/apple/playground_ios_application/playground_sdk \
         --output-base "$(bazel info output_base)"        # http://127.0.0.1:8090/
 
 Headless verification: `node tools/playground/cdp_shot.js <url> <out.png>
@@ -185,8 +185,8 @@ the wire (`minW/maxW/minH/maxH` params; the web renderer and the iOS
 native host clamp the flexible frame) — before, only `.infinity` did, so
 the page's 760-point column and the 400-point cards were full-width.
 `combine_sites` (tools/wasm/defs.bzl) assembles the splash at the root and
-the Playground under `playground/` into `//web/splash_web_application:site`;
-`bazel run //web/splash_web_application:serve` serves it (static only — the
+the Playground under `playground/` into `//playground/web/splash_web_application:site`;
+`bazel run //playground/web/splash_web_application:serve` serves it (static only — the
 dev compile server serves the same directory with `/compile`).
 
 **Build the published site with `-c opt`.** iOS Safari reported
@@ -213,8 +213,8 @@ locally and attached to the release:
     tools/playground/package_site.sh --toolchain-from <staged toolchain dir>
     gh release upload <tag> isomer-site.tar.gz
 
-`package_site.sh` builds `-c opt //web/splash_web_application:site` and
-`//apple/playground_ios_application:playground_sdk`, stages the toolchain
+`package_site.sh` builds `-c opt //playground/web/splash_web_application:site` and
+`//playground/apple/playground_ios_application:playground_sdk`, stages the toolchain
 with `stage_bundle.sh` against that SDK and the Swift SDK's
 `wasm32-unknown-wasip1` slice (from the module's output base), puts what the
 page fetches in `playground/toolchain/`, and writes `isomer-site.tar.gz`:
@@ -253,7 +253,7 @@ from any static host; the Playground takes its URL in the hot reloader.
 
 ## Tests
 
-`bazel test //web/playground_web_application:smoke --test_output=streamed`
+`bazel test //playground/web/playground_web_application:smoke --test_output=streamed`
 (manual, local: needs Chrome + the host toolchain) serves the site
 with the dev compile server and drives the page's dev hook
 (`window.__playgroundHost`): compile the Counter sample, run it, tap

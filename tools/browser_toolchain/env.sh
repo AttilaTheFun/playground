@@ -2,7 +2,7 @@
 export ISO_WORKSPACE="${ISO_WORKSPACE:-$HOME/Developer/ios-toolchain}"   # swift/llvm-project/... worktrees @ swift-6.3.2-RELEASE
 export ISO_BASE_TC="${ISO_BASE_TC:-$HOME/Developer/swiftwasm-source/build/Packaging/base-toolchain/swift-6.3.2-RELEASE/usr/bin}"
 # The SwiftWasm SDK's wasm32-unknown-wasip1 slice: by default the one Bazel
-# fetched for this module (`bazel build //apple/playground_ios_application:playground_sdk`
+# fetched for the examples' module (`bazel build //playground/apple/playground_ios_application:playground_sdk`
 # from playground/ fetches it), found under its output base.
 if [ -z "${ISO_WASM_SDK:-}" ]; then
     _iso_output_base="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && bazel info output_base 2>/dev/null)"

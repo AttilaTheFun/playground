@@ -6,11 +6,11 @@ so the page's loop (agent → compile → run) can be developed before the
 in-browser toolchain (tools/browser_toolchain) exists. Never for the
 published site: there the compiler worker uses swift-frontend.wasm.
 
-    bazel build //web/playground_web_application:playground_web_application_site \\
-                //apple/playground_ios_application:playground_sdk
+    bazel build //playground/web/playground_web_application:playground_web_application_site \\
+                //playground/apple/playground_ios_application:playground_sdk
     tools/playground/dev_compile_server.py \\
-        --site bazel-bin/web/playground_web_application/playground_web_application_site \\
-        --sdk  bazel-bin/apple/playground_ios_application/playground_sdk \\
+        --site bazel-bin/playground/web/playground_web_application/playground_web_application_site \\
+        --sdk  bazel-bin/playground/apple/playground_ios_application/playground_sdk \\
         --output-base "$(bazel info output_base)" [--port 8090]
 
 POST /compile (text/plain body = App.swift) → 200 + app.wasm, 422 + diagnostics.

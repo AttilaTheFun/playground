@@ -58,9 +58,9 @@ done
 cp "$NDK/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_shared.so" "$OUT/native/"
 
 # The SDK, the browser bundle's way (without the bundle blob itself).
-cd "$ROOT"
-bazel build -c opt //apple/playground_ios_application:playground_sdk
-SDK="$ROOT/$(bazel cquery -c opt --output=files //apple/playground_ios_application:playground_sdk 2>/dev/null | head -1)"
+cd "$ROOT/.."   # the examples workspace, whose bazel-out the output paths are under
+bazel build -c opt //playground/apple/playground_ios_application:playground_sdk
+SDK="$PWD/$(bazel cquery -c opt --output=files //playground/apple/playground_ios_application:playground_sdk 2>/dev/null | head -1)"
 STAGE="$(mktemp -d)/stage"
 "$ROOT/tools/browser_toolchain/stage_bundle.sh" --frontend "$TC/build/browser-work/opt/swift-frontend.opt.wasm" --linker "$TC/build/browser-work/opt/lld.opt.wasm" --slice "$SLICE" --sdk "$SDK" --out "$STAGE"
 cp -R "$STAGE/resource-dir" "$STAGE/sysroot" "$STAGE/sdk" "$STAGE/manifest.json" "$OUT/tree/"

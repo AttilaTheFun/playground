@@ -13,9 +13,9 @@
 # Always `-c opt`: a fastbuild APK is debuggable, so ART runs its Kotlin and
 # Compose largely interpreted, and its Swift is unoptimized.
 set -euo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."   # the examples workspace (the output paths are under it)
 SERIAL="${1:-${ANDROID_SERIAL:-}}"
-TARGET=//android/playground_android_application:playground_android_application_apk
+TARGET=//playground/android/playground_android_application:playground_android_application_apk
 PACKAGE=com.LoganShire.IsomerPlayground
 bazel build -c opt "$TARGET"
 APK="$(bazel cquery -c opt --output=files "$TARGET" 2>/dev/null | grep -v unsigned | grep '\.apk$' | head -1)"

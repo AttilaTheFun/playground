@@ -33,6 +33,7 @@ def eras(isomer):
         (isomer, "playground/", "apple/playground_ios_application", "web/splash_web_application/Splash.swift"),
         (isomer, "examples/", "apple/playground_ios_application", "web/splash_web_application/Splash.swift"),
         (isomer, "", "examples/apple/playground_ios_application", "examples/web/splash_web_application/Splash.swift"),
+        (isomer, "examples/", "playground/apple/playground_ios_application", "playground/web/splash_web_application/Splash.swift"),
     ]
 
 def recorded():
@@ -146,7 +147,7 @@ def history(isomer):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--isomer", default=os.path.dirname(ROOT))
+    parser.add_argument("--isomer", default=os.path.dirname(os.path.dirname(ROOT)))
     args = parser.parse_args()
     shipped = recorded()
     shipped.update({value: name for value, (name, _) in history(args.isomer).items()})

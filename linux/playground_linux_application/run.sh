@@ -6,7 +6,7 @@
 set -euo pipefail
 RUNFILES="${RUNFILES_DIR:-${0}.runfiles}"
 RUNFILES="$(cd "${RUNFILES}" && pwd)"
-REAL="${RUNFILES}/_main/linux/playground_linux_application/playground_linux_application_bin"
+REAL="${RUNFILES}/_main/playground/linux/playground_linux_application/playground_linux_application_bin"
 output_base="$(readlink -f "${REAL}")"
 output_base="${output_base%%/execroot/*}"
 swift_core="$(find "${output_base}/external" -name libswiftCore.so 2>/dev/null | head -n1 || true)"

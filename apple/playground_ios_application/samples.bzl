@@ -1,4 +1,4 @@
-"""Playground project templates assembled from //shared/sample_sources.
+"""Playground project templates assembled from //playground/shared/sample_sources.
 
 A template is ONE .swift file the Playground compiles as a single-file project
 against its SDK: a header, a `@main` App wrapper that hosts the example's
@@ -26,7 +26,7 @@ def playground_sample(name, out, title, srcs, app = None, services = False, plat
     """
     all_srcs = list(srcs)
     if services:
-        all_srcs.append("//shared/sample_sources:PlatformServicesAccess.swift")
+        all_srcs.append("//playground/shared/sample_sources:PlatformServicesAccess.swift")
     lines = [
         "// %s — as a Playground project. Same source as the example apps'." % title,
         "import SwiftUI",

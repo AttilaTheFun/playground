@@ -45,8 +45,8 @@ assemble_directory(
     spec = {
         "web/index.html": "index.html",
         "@isomer//wasm/libraries/swift_ui:runtime/hot_host.js": "hot_host.js",
-        "//web/playground_web_application:swift_ffi_runtime_js": "swift_ffi_runtime.js",
-        "//web/playground_web_application:app_bridge_js_files": "app_bridge.js",
+        "//playground/web/playground_web_application:swift_ffi_runtime_js": "swift_ffi_runtime.js",
+        "//playground/web/playground_web_application:app_bridge_js_files": "app_bridge.js",
         "@isomer//wasm/libraries/swift_ui:runtime/react_renderer.js": "runtime/react_renderer.js",
         "@isomer//wasm/libraries/swift_ui:runtime/flat_tree.js": "runtime/flat_tree.js",
         # The renderer's symbol table: a module it imports, so the page is
@@ -164,7 +164,7 @@ playground_sample(
         "    var body: some Scene { WindowGroup { NavigationStack { CounterScreen() } } }",
         "}",
     ],
-    srcs = ["//shared/sample_sources:Counter.swift"],
+    srcs = ["//playground/shared/sample_sources:Counter.swift"],
 )
 
 playground_sample(
@@ -180,8 +180,8 @@ playground_sample(
         "}",
     ],
     srcs = [
-        "//shared/sample_sources:Availability.swift",
-        "//shared/sample_sources:Game2048.swift",
+        "//playground/shared/sample_sources:Availability.swift",
+        "//playground/shared/sample_sources:Game2048.swift",
     ],
 )
 
@@ -194,7 +194,7 @@ playground_sample(
         "    var body: some Scene { WindowGroup { NavigationStack { HackerNewsScreen() } } }",
         "}",
     ],
-    srcs = ["//shared/sample_sources:HackerNews.swift"],
+    srcs = ["//playground/shared/sample_sources:HackerNews.swift"],
     services = True,
     bridge_shim = True,
 )
@@ -208,7 +208,7 @@ playground_sample(
         "    var body: some Scene { WindowGroup { NavigationStack { MemeCreatorScreen() } } }",
         "}",
     ],
-    srcs = ["//shared/sample_sources:MemeCreator.swift"],
+    srcs = ["//playground/shared/sample_sources:MemeCreator.swift"],
     services = True,
     platform_services = True,
 )
@@ -225,7 +225,7 @@ playground_sample(
         "    }",
         "}",
     ],
-    srcs = ["//shared/sample_sources:Pokedex.swift"],
+    srcs = ["//playground/shared/sample_sources:Pokedex.swift"],
     services = True,
 )
 
@@ -238,7 +238,7 @@ playground_sample(
         "    var body: some Scene { WindowGroup { NavigationStack { DatePlannerScreen() } } }",
         "}",
     ],
-    srcs = ["//shared/sample_sources:DatePlanner.swift"],
+    srcs = ["//playground/shared/sample_sources:DatePlanner.swift"],
     services = True,
 )
 
@@ -251,7 +251,7 @@ playground_sample(
         "    var body: some Scene { WindowGroup { NavigationStack { MapExplorerScreen() } } }",
         "}",
     ],
-    srcs = ["//shared/sample_sources:MapExplorer.swift"],
+    srcs = ["//playground/shared/sample_sources:MapExplorer.swift"],
 )
 
 playground_sample(
@@ -263,7 +263,7 @@ playground_sample(
         "    var body: some Scene { WindowGroup { NavigationStack { FloatingMenuScreen() } } }",
         "}",
     ],
-    srcs = ["//shared/sample_sources:FloatingMenu.swift"],
+    srcs = ["//playground/shared/sample_sources:FloatingMenu.swift"],
 )
 
 # "This website": the splash page with the example screens it embeds (as
@@ -274,12 +274,12 @@ playground_sample(
     out = "Splash.swift",
     title = "This website",
     srcs = [
-        "//web/splash_web_application:Splash.swift",
-        "//shared/sample_sources:Availability.swift",
-        "//shared/sample_sources:Counter.swift",
-        "//shared/sample_sources:Game2048.swift",
-        "//shared/sample_sources:Pokedex.swift",
-        "//shared/sample_sources:URLEncoding.swift",
+        "//playground/web/splash_web_application:Splash.swift",
+        "//playground/shared/sample_sources:Availability.swift",
+        "//playground/shared/sample_sources:Counter.swift",
+        "//playground/shared/sample_sources:Game2048.swift",
+        "//playground/shared/sample_sources:Pokedex.swift",
+        "//playground/shared/sample_sources:URLEncoding.swift",
     ],
     services = True,
 )
@@ -299,9 +299,9 @@ swift_library(
         "CodeEditor.swift",
         "WebRunServer.swift",
         # The compiler (the Mac's too), the Apple host and the shared shell.
-        "//apple/compiler:srcs",
-        "//apple/host:srcs",
-        "//shared/app:srcs",
+        "//playground/apple/compiler:srcs",
+        "//playground/apple/host:srcs",
+        "//playground/shared/app:srcs",
     ],
     module_name = "PlaygroundApp",
     tags = ["manual"],
@@ -310,7 +310,7 @@ swift_library(
         "//conditions:default": [],
     }),
     deps = [
-        "//apple/platform_services_host",
+        "//playground/apple/platform_services_host",
         "@isomer//apple/libraries/swift_ui:isomer",
         "@isomer//apple/libraries/wasm_view",
         "@isomer//shared/platform_services",
@@ -336,7 +336,7 @@ local_provisioning_profile(
 
 ios_application(
     name = "playground_ios_application",
-    app_icons = ["//artwork/playground_icon:app_icon"],
+    app_icons = ["//playground/artwork/playground_icon:app_icon"],
     bundle_id = "com.LoganShire.IsomerPlayground",
     bundle_name = "Playground",
     # Its own app ID and keychain group: a wildcard profile's entitlements
@@ -361,7 +361,7 @@ ios_application(
 
 # One command: build for the simulator, boot, install, and launch with the
 # host SwiftWasm toolchain paths injected (SIMCTL_CHILD_*), so Compile works
-# out of the box. `bazel run //apple/playground_ios_application:run`
+# out of the box. `bazel run //playground/apple/playground_ios_application:run`
 sh_binary(
     name = "run",
     srcs = ["run_playground.sh"],

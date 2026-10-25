@@ -16,7 +16,7 @@ swift_library(
     name = "app_lib",
     srcs = [
         "WebApp.swift",
-        "//shared/app:srcs",
+        "//playground/shared/app:srcs",
     ],
     alwayslink = True,
     copts = ["-parse-as-library"],
@@ -53,17 +53,17 @@ filegroup(
     # The Android Playground's templates too.
     visibility = ["//visibility:public"],
     srcs = [
-        "//apple/playground_ios_application:counter_sample",
-        "//apple/playground_ios_application:game2048_sample",
-        "//apple/playground_ios_application:hackernews_sample",
-        "//apple/playground_ios_application:meme_sample",
-        "//apple/playground_ios_application:pokedex_sample",
-        "//apple/playground_ios_application:date_planner_sample",
-        "//apple/playground_ios_application:map_explorer_sample",
-        "//apple/playground_ios_application:floating_menu_sample",
+        "//playground/apple/playground_ios_application:counter_sample",
+        "//playground/apple/playground_ios_application:game2048_sample",
+        "//playground/apple/playground_ios_application:hackernews_sample",
+        "//playground/apple/playground_ios_application:meme_sample",
+        "//playground/apple/playground_ios_application:pokedex_sample",
+        "//playground/apple/playground_ios_application:date_planner_sample",
+        "//playground/apple/playground_ios_application:map_explorer_sample",
+        "//playground/apple/playground_ios_application:floating_menu_sample",
         # The site's front page, editable in the Playground ("This website"),
         # with the example screens it embeds.
-        "//apple/playground_ios_application:splash_sample",
+        "//playground/apple/playground_ios_application:splash_sample",
     ],
 )
 
@@ -71,7 +71,7 @@ isomer_web_app(
     name = "playground_web_application",
     assets = [
         ":templates",
-        "//artwork/playground_icon:web_icon",
+        "//playground/artwork/playground_icon:web_icon",
     ],
     extra_pages = [
         "compiler_worker.js",
@@ -92,15 +92,15 @@ sh_test(
     srcs = ["smoke_test.sh"],
     args = [
         "$(rootpath :playground_web_application_site)",
-        "$(rootpath //apple/playground_ios_application:playground_sdk)",
-        "$(rootpath //tools/playground:dev_compile_server.py)",
-        "$(rootpath //tools/playground:cdp_eval.js)",
+        "$(rootpath //playground/apple/playground_ios_application:playground_sdk)",
+        "$(rootpath //playground/tools/playground:dev_compile_server.py)",
+        "$(rootpath //playground/tools/playground:cdp_eval.js)",
     ],
     data = [
         ":playground_web_application_site",
-        "//apple/playground_ios_application:playground_sdk",
-        "//tools/playground:cdp_eval.js",
-        "//tools/playground:dev_compile_server.py",
+        "//playground/apple/playground_ios_application:playground_sdk",
+        "//playground/tools/playground:cdp_eval.js",
+        "//playground/tools/playground:dev_compile_server.py",
     ],
     tags = ["local", "manual", "requires-network"],
 )

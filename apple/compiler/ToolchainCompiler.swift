@@ -126,11 +126,11 @@ enum ToolchainCompiler {
         #else
         guard Spawn.isAvailable else {
             return "On-device compilation is not wired up yet — run in the "
-                + "simulator via `bazel run //apple/playground_ios_application:run`."
+                + "simulator via `bazel run //playground/apple/playground_ios_application:run`."
         }
         guard Toolchain.fromEnvironment() != nil else {
             return "Toolchain paths missing — launch via "
-                + "`bazel run //apple/playground_ios_application:run` so "
+                + "`bazel run //playground/apple/playground_ios_application:run` so "
                 + "ISO_PLAYGROUND_* env vars are injected."
         }
         return nil

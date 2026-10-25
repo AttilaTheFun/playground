@@ -51,9 +51,12 @@ UI test; a web road's screen is the page as headless Chrome showed it).
 """
 import argparse, json, os, re, shutil, signal, subprocess, sys, time
 
+# The Playground (examples/playground/ in the isomer checkout).
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-# The isomer checkout this module lives in (playground/ is its subdirectory).
-ISOMER = os.environ.get("ISOMER", os.path.dirname(ROOT))
+# The examples workspace the Playground is part of (Bazel's output paths are
+# under it), and the isomer checkout around that.
+WORKSPACE = os.path.dirname(ROOT)
+ISOMER = os.environ.get("ISOMER", os.path.dirname(WORKSPACE))
 ANDROID_PACKAGE = "com.LoganShire.IsomerPlayground"
 IOS_BUNDLE = "com.LoganShire.IsomerPlayground"
 SIMULATOR_TYPE = "iPhone"
@@ -86,7 +89,7 @@ def check(ok, what, detail=""):
     return ok
 
 def sh(command, check_status=True, **kwargs):
-    result = subprocess.run(command, shell=isinstance(command, str), cwd=kwargs.pop("cwd", ROOT),
+    result = subprocess.run(command, shell=isinstance(command, str), cwd=kwargs.pop("cwd", WORKSPACE),
                             capture_output=True, text=True, **kwargs)
     if check_status and result.returncode != 0:
         raise SystemExit(f"{command}\n{result.stdout}{result.stderr}")
@@ -95,7 +98,7 @@ def sh(command, check_status=True, **kwargs):
 def bazel_output(target, *flags, suffix=""):
     sh(["bazel", "build", target, *flags])
     files = sh(["bazel", "cquery", "--output=files", target, *flags]).stdout.split()
-    return os.path.join(ROOT, next(f for f in files if f.endswith(suffix)))
+    return os.path.join(WORKSPACE, next(f for f in files if f.endswith(suffix)))
 
 def page_check(url, text, seconds=60):
     environment = dict(os.environ)
@@ -196,7 +199,7 @@ def android():
     # directory's.
     host = "darwin" if sys.platform == "darwin" else "linux"
     adb = sh(f"find -L \"$(bazel info output_base)/external\" -maxdepth 4 -path '*androidsdk_{host}*platform-tools*' -name adb -type f | head -1").stdout.strip()
-    apk = bazel_output("//android/playground_android_application:playground_android_application_apk", "-c", "opt", suffix="_apk.apk")
+    apk = bazel_output("//playground/android/playground_android_application:playground_android_application_apk", "-c", "opt", suffix="_apk.apk")
     # A test phone when ANDROID_SERIAL names one (with ADB_SERVER_SOCKET when
     # its adb server is not this Mac's), else this Mac's emulator.
     serial = os.environ.get("ANDROID_SERIAL")
@@ -429,7 +432,7 @@ def ios():
     flags = ["--ios_multi_cpus=sim_arm64", "-c", "opt"]
     if os.path.isdir(os.path.join(ROOT, "apple/playground_ios_application/embedded_toolchain/iphonesimulator/lib")):
         flags.append("--define=iso_playground_embedded=1")
-    ipa = bazel_output("//apple/playground_ios_application", *flags, suffix=".ipa")
+    ipa = bazel_output("//playground/apple/playground_ios_application", *flags, suffix=".ipa")
     # A simulator of oss's (the server is this Mac: simctl reaches it).
     udid, was_booted = oss_lease("ios")["OSS_UDID"], True
     sh(["xcrun", "simctl", "bootstatus", udid, "-b"])

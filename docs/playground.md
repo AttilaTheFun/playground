@@ -131,7 +131,7 @@ over the chat, then either the run or a "Build Failed" sheet (wrapped,
 selectable diagnostics with a Copy button).
 
 ```sh
-bazel run //apple/playground_ios_application:run   # from playground/, this module's root
+bazel run //playground/apple/playground_ios_application:run   # from examples/ (or here)
 ```
 
 ## Projects and templates
@@ -373,7 +373,7 @@ monospaced text view (`ReadOnlyCodeText`, a UITextView) with Done.
 
 RSPM alternatives, if a richer editor is wanted (all resolvable through the
 `swift_package` extension the way the examples' `proto_greeter` pulls
-SwiftProtobuf, or this module's graph AgentUI):
+SwiftProtobuf, or the examples' graph AgentUI):
 `twostraws/Sourceful` (SourceEditor: UITextView + Swift lexer + themes,
 closest to this built-in), `raspu/Highlightr` (highlight.js in
 JavaScriptCore, 180 languages), `mchakravarty/CodeEditorView` (SwiftUI,

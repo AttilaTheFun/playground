@@ -3,7 +3,7 @@
 # loads (`toolchain/manifest.json` + files), from:
 #   --frontend swift-frontend.wasm   --linker wasm-ld.wasm   (tools/browser_toolchain builds)
 #   --slice <wasm32-unknown-wasip1 slice of the swift SDK artifact bundle>
-#   --sdk   <playground_sdk dir> (bazel-bin/apple/playground_ios_application/playground_sdk)
+#   --sdk   <playground_sdk dir> (bazel-bin/playground/apple/playground_ios_application/playground_sdk)
 #   --out   <site>/playground/toolchain
 #   --plugin <plugin.wasm>#<module>[,<module>…]   (repeatable: macro plugins
 #           built by build_macro_plugins.sh, for the modules they serve)

@@ -11,49 +11,49 @@ News, Meme Creator, Pokédex, Date Planner, Map Explorer, Floating Menu, and
 
 | | Target | Renderer | Projects (compiler) | A run |
 | --- | --- | --- | --- | --- |
-| iOS | `//apple/playground_ios_application` | SwiftUI; Metal for runs | swift-frontend and lld linked into the app | WasmView (WasmKit), or Safari |
-| macOS | `//apple/playground_macos_application` | SwiftUI | swift-frontend and wasm-ld in the app, run as processes | WasmView (WasmKit) |
-| Android | `//android/playground_android_application` | Compose, OpenGL | swift-frontend and wasm-ld in the APK | its own window (WasmKit), or Chrome |
-| Web | `//web/playground_web_application` | React, WebGPU | the compiler as WebAssembly, in a Worker | in the page |
-| Linux | `//linux/playground_linux_application` | OpenGL | swift-frontend and wasm-ld beside the app, run as processes | its own window (WasmKit) |
-| Windows | `//windows/playground_windows_application` | Direct3D | swift-frontend and wasm-ld beside the app (the build machine's Swift's), run as processes | its own window (WasmKit) |
+| iOS | `//playground/apple/playground_ios_application` | SwiftUI; Metal for runs | swift-frontend and lld linked into the app | WasmView (WasmKit), or Safari |
+| macOS | `//playground/apple/playground_macos_application` | SwiftUI | swift-frontend and wasm-ld in the app, run as processes | WasmView (WasmKit) |
+| Android | `//playground/android/playground_android_application` | Compose, OpenGL | swift-frontend and wasm-ld in the APK | its own window (WasmKit), or Chrome |
+| Web | `//playground/web/playground_web_application` | React, WebGPU | the compiler as WebAssembly, in a Worker | in the page |
+| Linux | `//playground/linux/playground_linux_application` | OpenGL | swift-frontend and wasm-ld beside the app, run as processes | its own window (WasmKit) |
+| Windows | `//playground/windows/playground_windows_application` | Direct3D | swift-frontend and wasm-ld beside the app (the build machine's Swift's), run as processes | its own window (WasmKit) |
 
 The six apps share one shell (`shared/app`) and the canned examples
 (`shared/sample_sources`). Isomer's SwiftUI API is shown and proven by the
 Storybook (isomer's `examples/`).
 
 Also here, because it exercises the same agent page (AgentUI on Isomer): the
-transcript stress apps, `//web/transcript_stress_web_application` and
-`//android/transcript_stress_android_application` (source in
+transcript stress apps, `//playground/web/transcript_stress_web_application` and
+`//playground/android/transcript_stress_android_application` (source in
 `shared/transcript_stress_application`): a long agent conversation, to see
 how a large transcript scrolls and streams. The web app is published with a
-front page beside it (`//web/splash_web_application`, the whole site is its
+front page beside it (`//playground/web/splash_web_application`, the whole site is its
 `:site`).
 
 ## Build
 
-`playground/` is a Bazel module of its own (`isomer_playground`), which
-consumes the parent checkout the way an application consumes isomer, as
-`examples/` does: `bazel_dep(name = "isomer")` with a `local_path_override`
-on `..`. Run Bazel from here:
+`examples/playground/` is part of the examples' Bazel module, which
+consumes the isomer checkout the way an application consumes isomer:
+`bazel_dep(name = "isomer")` with a `local_path_override` on `..`. Run Bazel
+from here (it finds the examples' module above) or from `examples/`:
 
 ```sh
-cd playground
+cd examples/playground
 # iOS simulator, compiling with the host toolchain
-bazel run //apple/playground_ios_application:run
+bazel run //playground/apple/playground_ios_application:run
 # iOS, onto a phone (installs, does not launch; the compiler must be staged
 # first, see below; the Apple team comes from .bazelrc.user, see below)
 DEVICE=<udid> apple/playground_ios_application/install_device.sh
 # the web site
-bazel build -c opt //web/splash_web_application:site
+bazel build -c opt //playground/web/splash_web_application:site
 # Android
-bazel build -c opt //android/playground_android_application
-bazel test //...
+bazel build -c opt //playground/android/playground_android_application
+bazel test //playground/...
 ```
 
 An iPhone build is signed with your own Apple team: put
-`common --repo_env=ISOMER_TEAM_ID=<your team id>` in a `.bazelrc.user` here
-(untracked; `tools/signing`). Simulator, web and Android builds need nothing.
+`common --repo_env=ISOMER_TEAM_ID=<your team id>` in `examples/.bazelrc.user`
+(untracked; the examples' `tools/signing`). Simulator, web and Android builds need nothing.
 
 The compilers are not in git; they are far too large. They are built once by
 `tools/playground_toolchain` (iOS, Android) and `tools/browser_toolchain`

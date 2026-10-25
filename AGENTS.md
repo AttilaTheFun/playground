@@ -49,40 +49,25 @@ of its own (pinning isomer by commit), back in isomer as `playground/` at
 | --- | --- |
 | `apple/` | the iOS app and its embedded-compiler staging scripts, the Mac app, `compiler` (how both build a project: ToolchainCompiler and its backends, the iPhone's in-process compiler), `host` (the Apple host and @main), `platform_services_host` (the services a run gets in WasmView) |
 | `android/` | the Android app (Kotlin host: compile, run, chat, the web run), `platform_services` (the services a run gets), the transcript stress app |
-| `web/` | the web app, the splash page (the whole site is `//web/splash_web_application:site`), the transcript stress app |
+| `web/` | the web app, the splash page (the whole site is `//playground/web/splash_web_application:site`), the transcript stress app |
 | `linux/`, `windows/` | the desktop apps (built in a Linux container on a Mac, and on Windows) |
 | `shared/` | `app` (the shell), `compiler` (what every Playground that carries its compiler shares: the build's arguments, the SDK, the build with a compiler carried as files, and that compiler assembled for the app, toolchain.bzl), `desktop_host` (Linux and Windows), `sample_sources` (the templates' sources), `transcript_stress_application` |
-| `tools/` | `playground_toolchain` (the iOS and Android compilers), `browser_toolchain` (the compiler as WebAssembly), `playground` (dev compile server, headless Chrome drivers, the site's packaging and the hot-reload publish scripts, template history), `patches` and `signing` (below) |
+| `tools/` | `playground_toolchain` (the iOS and Android compilers), `browser_toolchain` (the compiler as WebAssembly), `playground` (dev compile server, headless Chrome drivers, the site's packaging and the hot-reload publish scripts, template history) |
 | `tests/` | `templates` (every template compiles), `e2e` (what a reader does, on an emulator and a simulator), `ios_ui_probe` (a manual XCUITest); the release's proof is isomer's `tools/proof/proof.py` |
 | `docs/` | `playground.md` (the iOS app), `playground_web.md` (the web app, the site, publishing) |
-| `third_party/swift_packages` | the module's SwiftPM graph: AgentUI and OpenRouterKit |
 
-- **A Bazel module of its own** (`isomer_playground`), consuming isomer
-  exactly as `examples/` does: `bazel_dep(name = "isomer")` +
-  `local_path_override(path = "..")`. The root module's `.bazelignore` lists
-  `playground`, so isomer's `//...` never sees it; run Bazel from
-  `playground/`. Labels here are this module's (`//apple/...`); isomer's are
-  `@isomer//...`.
-- **Root-only overrides are repeated** (bzlmod honours them from the root
-  module only): flatbuffers' two patches, rules_foreign_cc, the Swift and
-  Android toolchain tags and registrations, the Maven install over a
-  vendored lock. The rules_swift and swift-foundation forks come by version
-  from the project's registry (.bazelrc lists it before the BCR), patches
-  and all. `examples/MODULE.bazel` is the reference: when isomer changes an
-  override or a version there, change it here the same way.
-  `tools/patches/*.patch` are copies of `examples/tools/patches`
-  (`cmp` them). The Playground declares only the single-threaded wasm SDK.
-- **The SwiftPM graph** (agent_ui and open_router_cli, public) is pinned by
-  revision in `third_party/swift_packages/Package.swift` + `Package.resolved`
-  (re-resolve with `swift package resolve` there, then delete `.build`), and
-  resolves under this module's own extension identity
-  (`third_party/swift_packages/extensions.bzl`). Its targets that import
-  SwiftUI or Foundation depend on `@isomer//:swift_ui` and
-  `@isomer//:foundation` (`configure_package` in MODULE.bazel): Isomer's on
-  wasm and Android, nothing on Apple.
+- **Part of the examples' Bazel module** (since 0.39; a module of its own
+  in `playground/` before): labels here are `//playground/...`, isomer's
+  `@isomer//...`. The examples' MODULE.bazel, .bazelrc and SwiftPM graph
+  (`examples/third_party/swift_packages`: AgentUI and OpenRouterKit beside
+  the examples' packages) are the Playground's; run Bazel from `examples/`
+  (or from here: Bazel finds the module above). AgentUI's targets that
+  import SwiftUI or Foundation depend on `@isomer//:swift_ui` and
+  `@isomer//:foundation` (`configure_package` in examples/MODULE.bazel):
+  Isomer's on wasm and Android, nothing on Apple.
 - **Signing is the builder's**: an iPhone build takes its Apple team from
   `ISOMER_TEAM_ID` (`common --repo_env=ISOMER_TEAM_ID=<team>` in an untracked
-  `.bazelrc.user` here; `tools/signing`, as the examples'). No team, profile,
+  `examples/.bazelrc.user`; the examples' `tools/signing`). No team, profile,
   device identifier or person's name goes in a tracked file.
 - **Versions**: the apps display the number of the Isomer release they ship
   with (iOS `Info.plist`, Android `version_name`); build numbers
@@ -122,7 +107,7 @@ of its own (pinning isomer by commit), back in isomer as `playground/` at
   sample source, `samples.bzl`, `Splash.swift`) and the change is committed,
   run `tools/playground/template_history.py` and commit what it writes.
 - **The web-run site** of the iOS and Android apps takes its bridge from the
-  web app's compiled bindings (`//web/playground_web_application:app_bridge_js_files`):
+  web app's compiled bindings (`//playground/web/playground_web_application:app_bridge_js_files`):
   a platform service the page injects must exist there.
 - **Publishing** the web site or a hot-reload feed is deliberate, never part
   of a build or a test. The site: `tools/playground/package_site.sh` makes
@@ -140,14 +125,14 @@ of its own (pinning isomer by commit), back in isomer as `playground/` at
 
 ## Verifying
 
-- `bazel test //...` from `playground/`: the site-import tests (a page with
+- `bazel test //playground/...` from `examples/`: the site-import tests (a page with
   a missing module is silently blank) and `templates_compile_test` (every
   template compiles and links against the Playground SDK with the host
   toolchain). On every change of isomer or a dependency.
 - `bazel build //...`, and the apps as they ship:
-  `--ios_multi_cpus=sim_arm64 //apple/playground_ios_application`,
-  `-c opt //web/splash_web_application:site`,
-  `-c opt //android/playground_android_application`.
+  `--ios_multi_cpus=sim_arm64 //playground/apple/playground_ios_application`,
+  `-c opt //playground/web/splash_web_application:site`,
+  `-c opt //playground/android/playground_android_application`.
 - **`tests/e2e/run.py [android] [ios]`** before a build goes to anyone's
   phone or a release: what a reader does, against the builds that get
   installed. Android (the hermetic emulator, `emulator-5554` only, booted
@@ -180,17 +165,17 @@ of its own (pinning isomer by commit), back in isomer as `playground/` at
   holds a release until its commit has them. `tests/e2e/run.py` still
   drives what a reader does on an emulator and a simulator before a build
   goes to a phone.
-- iOS: on a simulator. `bazel run //apple/playground_ios_application:run`
+- iOS: on a simulator. `bazel run //playground/apple/playground_ios_application:run`
   builds, installs and launches there with the host toolchain; with the
   embedded compiler staged for the simulator the app compiles in-process, and
   `SIMCTL_CHILD_ISO_PLAYGROUND_AUTORUN=native` builds a sample and logs
   `[playground] compiled N bytes`. Shut the simulator down after.
 - Android: on isomer's hermetic emulator (`bazel run @isomer//tools/android/emulator
   -- -no-window`); kill it afterwards.
-- Web: serve the site (`bazel run //web/splash_web_application:serve`, or
+- Web: serve the site (`bazel run //playground/web/splash_web_application:serve`, or
   the dev compile server, docs/playground_web.md) and drive it with
   `tools/playground/cdp_eval.js`; the manual
-  `//web/playground_web_application:smoke` test does a whole
+  `//playground/web/playground_web_application:smoke` test does a whole
   compile-run-tap. Stop every server and headless Chrome you start.
 - On a phone, when its owner asks for the build:
   `DEVICE=<udid> apple/playground_ios_application/install_device.sh` and
