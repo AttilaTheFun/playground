@@ -2,7 +2,7 @@
 
 Write SwiftUI on your device, build it there, and run it there: one SwiftUI
 app on iOS, macOS, Android, the web, Linux and Windows, built on
-[Isomer](../README.md). A project is a `.swift` file; Run compiles it to
+[Isomer](https://github.com/AttilaTheFun/isomer). A project is a `.swift` file; Run compiles it to
 WebAssembly with a Swift compiler the app carries, and shows the result on
 Isomer's SwiftUI. An agent page (AgentUI) can write and fix the project for
 you. New projects start from the canned examples: Counter, 2048, Hacker
@@ -32,13 +32,14 @@ front page beside it (`//web/splash_web_application`, the whole site is its
 
 ## Build
 
-`examples/playground/` is part of the examples' Bazel module, which
-consumes the isomer checkout the way an application consumes isomer:
-`bazel_dep(name = "isomer")` with a `local_path_override` on `..`. Run Bazel
-from here (it finds the examples' module above) or from `examples/`:
+This repository is a Bazel module of its own, `playground`, an application
+on Isomer: isomer by version from the project's registry
+(AttilaTheFun/bazel_registry, listed before the BCR in `.bazelrc`), and
+isomer's Swift, AgentUI and UpdateKit through
+`third_party/swift_packages/Package.swift` (isomer by its release's tag, the
+others by version). Run Bazel from the repository's root:
 
 ```sh
-cd examples/playground
 # iOS simulator, compiling with the host toolchain
 bazel run //apple/playground_ios_application:run
 # iOS, onto a phone (installs, does not launch; the compiler must be staged
@@ -52,8 +53,8 @@ bazel test //...
 ```
 
 An iPhone build is signed with your own Apple team: put
-`common --repo_env=ISOMER_TEAM_ID=<your team id>` in `examples/.bazelrc.user`
-(untracked; the examples' `tools/signing`). Simulator, web and Android builds need nothing.
+`common --repo_env=ISOMER_TEAM_ID=<your team id>` in `.bazelrc.user`
+(untracked; `tools/signing`). Simulator, web and Android builds need nothing.
 
 The compilers are not in git; they are far too large. They are built once by
 `tools/playground_toolchain` (iOS, Android) and `tools/browser_toolchain`
@@ -61,7 +62,8 @@ The compilers are not in git; they are far too large. They are built once by
 `apple/playground_ios_application/build_embedded_toolchain.sh` and
 `android/playground_android_application/stage_toolchain.sh`. Without them the
 iOS and Android apps build but cannot compile; the READMEs in those tools
-directories are the instructions.
+directories are the instructions. CI stages the compilers it ships from OS
+Server's files (`tools/ci/stage_playground_compilers.sh`).
 
 ## Where things are
 
@@ -69,20 +71,22 @@ directories are the instructions.
   the site and publishing.
 - `tools/playground`: the web dev compile server, headless Chrome drivers, the
   site's packaging script and the hot-reload publish script.
-- `MODULE.bazel` repeats isomer's root-only overrides (bzlmod honours them
-  from the root module only), as `examples/MODULE.bazel` does; keep the two in
-  step. Outside this repository an application depends on an isomer release
-  by version from the project's registry (or a `git_override` of a commit)
-  instead of the `local_path_override`.
+- `MODULE.bazel` declares what isomer asks of its consumer (the Swift
+  toolchains and SDKs, the Android and Apple toolchains), as isomer's
+  `examples/MODULE.bazel` does; keep the two in step when isomer's change.
+- `.github/workflows/build.yml` and `tools/ci`: CI (a pull request's build
+  and tests without a GUI, main's cache, and by hand the proof, the Alphas
+  and a release); `tools/proof/proof.py` pictures the apps for the proof.
 - `AGENTS.md`: how the module is laid out, built and tested, and its rules.
 
-The web site is https://attilathefun.github.io/isomer/ (the Playground at
-`playground/`): `tools/playground/package_site.sh` packages it as
-`isomer-site.tar.gz`, which is attached to a GitHub release
-(`gh release upload <tag> isomer-site.tar.gz`), and the repository's
-`.github/workflows/pages.yml` deploys it to GitHub Pages when the release is
-published, or by hand (`docs/playground_web.md`, "Publishing").
+The web site is https://attilathefun.github.io/playground/ (the Playground
+at `playground/`): `tools/playground/package_site.sh` packages it as
+`playground-site.tar.gz`, which CI attaches to a draft release, and the
+repository's `.github/workflows/pages.yml` deploys it to GitHub Pages when
+the release is published, or by hand (`docs/playground_web.md`,
+"Publishing").
 
-This was `examples/{apple,web,android}/playground_*` in this repository until
-Isomer 0.15 (tag `v0.14`), then a repository of its own until it came back
-here, as `playground/`, at 0.35.
+The Playground was `examples/{apple,web,android}/playground_*` in isomer
+until Isomer 0.15, then a repository of its own until it came back to
+isomer, as `playground/`, at 0.35 (`examples/playground/` from 0.39), and
+this repository since 0.47, its history from isomer brought with it.

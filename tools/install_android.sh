@@ -13,7 +13,7 @@
 # Always `-c opt`: a fastbuild APK is debuggable, so ART runs its Kotlin and
 # Compose largely interpreted, and its Swift is unoptimized.
 set -euo pipefail
-cd "$(dirname "$0")/../.."   # the examples workspace (the output paths are under it)
+cd "$(dirname "$0")/.."   # the repository, its Bazel workspace (the output paths are under it)
 SERIAL="${1:-${ANDROID_SERIAL:-}}"
 TARGET=//android/playground_android_application:playground_android_application_apk
 PACKAGE=com.LoganShire.IsomerPlayground

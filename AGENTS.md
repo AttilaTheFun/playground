@@ -1,9 +1,9 @@
-# AGENTS.md — the Playground (isomer/playground)
+# AGENTS.md — the Playground (AttilaTheFun/playground)
 
 Context for AI agents (and new humans) working on the Playground. README.md
-says what it is and where things are; the parent checkout's AGENTS.md is
-Isomer's own guide. If something here contradicts the code, trust the code
-and update this file.
+says what it is and where things are; isomer's AGENTS.md (AttilaTheFun/isomer)
+is Isomer's own guide. If something here contradicts the code, trust the
+code and update this file.
 
 ## What it is
 
@@ -41,7 +41,9 @@ string extras; the web page's `ISO_` query parameters):
 
 History: `examples/*/playground_*` in isomer until 0.15, then a repository
 of its own (pinning isomer by commit), back in isomer as `playground/` at
-0.35, a demo of what Isomer does.
+0.35 (`examples/playground/`, part of the examples' module, from 0.39), and
+this repository since 0.47, its history from isomer brought with it (the
+paths rewritten to the root; commits before 0.35 are isomer's alone).
 
 ## The module
 
@@ -52,26 +54,31 @@ of its own (pinning isomer by commit), back in isomer as `playground/` at
 | `web/` | the web app, the splash page (the whole site is `//web/splash_web_application:site`), the transcript stress app |
 | `linux/`, `windows/` | the desktop apps (built in a Linux container on a Mac, and on Windows) |
 | `shared/` | `app` (the shell), `compiler` (what every Playground that carries its compiler shares: the build's arguments, the SDK, the build with a compiler carried as files, and that compiler assembled for the app, toolchain.bzl), `desktop_host` (Linux and Windows), `sample_sources` (the templates' sources), `transcript_stress_application` |
-| `tools/` | `playground_toolchain` (the iOS and Android compilers), `browser_toolchain` (the compiler as WebAssembly), `playground` (dev compile server, headless Chrome drivers, the site's packaging and the hot-reload publish scripts, template history) |
-| `tests/` | `templates` (every template compiles), `e2e` (what a reader does, on an emulator and a simulator), `ios_ui_probe` (a manual XCUITest); the release's proof is isomer's `tools/proof/proof.py` |
+| `tools/` | `playground_toolchain` (the iOS and Android compilers), `browser_toolchain` (the compiler as WebAssembly), `playground` (dev compile server, headless Chrome drivers, the site's packaging and the hot-reload publish scripts, template history), `ci` (CI's scripts), `proof` (the release's proof), `testing` (cdp.py, isomer's headless Chrome driver), `signing`, `variant`, `ci_device` |
+| `tests/` | `templates` (every template compiles), `e2e` (what a reader does, on an emulator and a simulator), `ios_ui_probe` (a manual XCUITest); the release's proof is `tools/proof/proof.py` |
+| `.github/` | CI (`workflows/build.yml`), the site's deploy (`pages.yml`), the pins check (`pins.yml`), CODEOWNERS |
 | `docs/` | `playground.md` (the iOS app), `playground_web.md` (the web app, the site, publishing) |
 
-- **Part of the examples' Bazel module** (since 0.39; a module of its own
-  in `playground/` before): labels here are `//...`, isomer's
-  `@isomer//...`. The examples' MODULE.bazel, .bazelrc and SwiftPM graph
-  (`examples/third_party/swift_packages`: AgentUI and OpenRouterKit beside
-  the examples' packages) are the Playground's; run Bazel from `examples/`
-  (or from here: Bazel finds the module above). AgentUI's targets that
-  import SwiftUI or Foundation depend on `@isomer//:swift_ui` and
-  `@isomer//:foundation` (`configure_package` in examples/MODULE.bazel):
-  Isomer's on wasm and Android, nothing on Apple.
+- **A Bazel module of its own**, `playground` (since 0.47; part of isomer's
+  examples' module before): labels here are `//...`, isomer's
+  `@isomer//...`. isomer comes from the project's registry by version
+  (`.bazelrc` lists it before the BCR); its Swift, AgentUI and UpdateKit
+  through `third_party/swift_packages/Package.swift` (isomer by its
+  release's tag, the others by exact version: `tools/released_pins.sh`
+  checks them). AgentUI's targets that import SwiftUI or Foundation depend
+  on `@isomer//:swift_ui` and `@isomer//:foundation` (`configure_package` in
+  MODULE.bazel): Isomer's on wasm and Android, nothing on Apple. Run Bazel
+  from the repository's root.
 - **Signing is the builder's**: an iPhone build takes its Apple team from
   `ISOMER_TEAM_ID` (`common --repo_env=ISOMER_TEAM_ID=<team>` in an untracked
-  `examples/.bazelrc.user`; the examples' `tools/signing`). No team, profile,
-  device identifier or person's name goes in a tracked file.
-- **Versions**: the apps display the number of the Isomer release they ship
-  with (iOS `Info.plist`, Android `version_name`); build numbers
-  (`CFBundleVersion`, `version_code`) are integers that only go up.
+  `.bazelrc.user`; `tools/signing`). No team, profile, device identifier or
+  person's name goes in a tracked file.
+- **Versions**: MAJOR.MINOR.BUILD, as isomer's. MODULE.bazel and the apps
+  commit MAJOR.MINOR.0 (iOS and Mac `Info.plist`, Android `version_name`,
+  the web page's and the desktop hosts'); CI stamps each build's own,
+  MAJOR.MINOR.N, from Applications Server (`tools/ci/stamp_apps.sh`), and a
+  release is tagged vMAJOR.MINOR.N. Android's `version_code` is
+  MAJOR×1,000,000 + MINOR×1,000 + N; `CFBundleVersion` stays 1.
 
 ## Rules
 
@@ -98,34 +105,44 @@ of its own (pinning isomer by commit), back in isomer as `playground/` at
   writes it, which package_site.sh --toolchain-from takes; a new archive is
   `oss files add`ed on the server's Mac and its SHA-256 changed there). Windows has no such
   toolchain in rules_swift; its package takes the build VM's installed
-  Swift's (isomer's tools/proof/proof.py does), with the wasm SDK's data
+  Swift's (tools/proof/proof.py does), with the wasm SDK's data
   and the Playground SDK from the Mac. Linux's lld wants Ubuntu 24.04's
   libxml2 and ICU 74, which its package.sh carries in lib/.
-- **Copies of the examples' files**: `shared/sample_sources` is
-  `examples/shared/example_application`'s (the template sources),
+- **Copies of isomer's examples' files**: `shared/sample_sources` is
+  isomer's `examples/shared/example_application`'s (the template sources),
   `apple/platform_services_host` is `examples/apple/platform_services_host`,
   `android/platform_services` is the examples' `AppServices.kt` and
-  `platform_services_wasm`. Another module's files cannot be labels here, so
-  they are copied: when the examples' change (or isomer's platform services
-  change shape), these follow by hand. `samples.bzl` drops `import` lines
+  `platform_services_wasm`. Another repository's files cannot be labels
+  here, so they are copied: when isomer's examples change (or isomer's
+  platform services change shape), these follow by hand. `samples.bzl` drops `import` lines
   (and the Linux/Windows `FoundationNetworking` block) when it assembles a
   template.
 - **Templates out of the box**: a project made from a template and never
   edited takes the current template at launch (`TemplateHistory`, the
   fingerprint of every version ever shipped). After a template changes (a
   sample source, `samples.bzl`, `Splash.swift`) and the change is committed,
-  run `tools/playground/template_history.py` and commit what it writes.
+  run `tools/playground/template_history.py` (with an isomer checkout beside
+  this one, for the history before 0.35) and commit what it writes.
 - **The web-run site** of the iOS and Android apps takes its bridge from the
   web app's compiled bindings (`//web/playground_web_application:app_bridge_js_files`):
   a platform service the page injects must exist there.
 - **Publishing** the web site or a hot-reload feed is deliberate, never part
   of a build or a test. The site: `tools/playground/package_site.sh` makes
-  `isomer-site.tar.gz`, `gh release upload <tag> isomer-site.tar.gz` attaches
-  it to a release, and the repository's `.github/workflows/pages.yml` deploys
-  it to https://attilathefun.github.io/isomer/ when the release is published
-  (or by hand; docs/playground_web.md "Publishing"). Never commit the site:
-  it is about 115 MB of compiled output. A hot-reload feed:
+  `playground-site.tar.gz`, which CI's alpha job attaches to the draft
+  release it makes, and the repository's `.github/workflows/pages.yml`
+  deploys it to https://attilathefun.github.io/playground/ when the release
+  is published (or by hand; docs/playground_web.md "Publishing"). Never
+  commit the site: it is about 115 MB of compiled output. A hot-reload feed:
   `tools/playground/publish_hot_reload.sh`.
+- **CI** (`.github/workflows/build.yml`, as isomer's): a pull request's
+  `container` builds every app in a Linux container and runs the tests
+  without a GUI; main's `populate` builds everything into OS Server's
+  cache. By hand (`run:`): `verify` (the build and the tests, and the proof
+  beside it), `prerelease` and `release` (the Alphas, published through
+  Applications Server, and a draft release: CI's, never an agent's), and
+  `adhoc` (a branch's apps). Publishing a release promotes its Alphas and
+  attaches its assets. Self-hosted jobs run on the `playground-jit`
+  runners.
 - **A person's own phone is not a test device.** Install a build there only
   when its owner asks, read the installed version back, and stop: no
   launching, tapping, screenshots or autorun hooks unless they ask for
@@ -134,10 +151,11 @@ of its own (pinning isomer by commit), back in isomer as `playground/` at
 
 ## Verifying
 
-- `bazel test //...` from `examples/`: the site-import tests (a page with
-  a missing module is silently blank) and `templates_compile_test` (every
+- `bazel test //...`: the site-import tests (a page with a missing module
+  is silently blank; CI runs them) and `templates_compile_test` (every
   template compiles and links against the Playground SDK with the host
-  toolchain). On every change of isomer or a dependency.
+  toolchain: a Mac's, so not in CI's container). On every change of isomer
+  or a dependency.
 - `bazel build //...`, and the apps as they ship:
   `--ios_multi_cpus=sim_arm64 //apple/playground_ios_application`,
   `-c opt //web/splash_web_application:site`,
@@ -153,27 +171,27 @@ of its own (pinning isomer by commit), back in isomer as `playground/` at
   start the build in its own window and survive a swipe. iOS (its own
   simulator, `playground-e2e`): "Run on the web" must show the project
   inside the app's Safari view, read through Isomer's XCUITest driver
-  (`examples/tests/safari_probe` in the parent checkout). It exists because
+  (`examples/tests/safari_probe` in an isomer checkout: `ISOMER`, default
+  isomer beside this one). It exists because
   "Run on the web" reached phones blank twice: the site's file list missing
   a module, then a stale APK.
-- **A release's proof** is isomer's `tools/proof/proof.py`: the Storybook
-  and the Playground on every platform, each with its one renderer
-  (`review-<platform>-storybook`, `review-<platform>-playground`: the review
-  server files only `review-` folders; app "Storybook" and "Playground", the
-  version `version_name` says). The Playground's: its projects, a project
-  open, and 2048 and the Pokédex built on the device and running. Stamp the
-  build's version into the working tree first, as CI does
-  (`tools/playground/stamp.py 0.38.N` here, the examples'
-  `tools/stamp_storybook.py 0.38.N`), and check the files out after. The
-  web Playground's compiler is the in-browser one an earlier site staged
-  (`--web-toolchain <its playground/toolchain>`). The runs go to the review
-  server with the review tooling's `publish_proof` (`bazel run
-  //reviews/harnesses:publish_proof -- runs <folder of review-<run>
-  folders> --commit <sha>` in the reviews checkout, `REVIEW_SERVER_CODE`
-  from `reviews-server code` on its Mac, never on a command line). Reviews
-  holds a release until its commit has them. `tests/e2e/run.py` still
-  drives what a reader does on an emulator and a simulator before a build
-  goes to a phone.
+- **A release's proof** is CI's (the Build workflow run by hand,
+  `tools/ci/proof.sh`, `tools/proof/proof.py`): the Playground on every
+  tier-1 platform, each with its one renderer (`review-<platform>-playground`,
+  app "Playground", the version `version_name` says): its projects, a
+  project open, and 2048 and the Pokédex built on the device and running,
+  each picture named `<platform>-playground-<screen>` and compared with the
+  previous release's (isomer's v0.46.1 proof until this repository has one
+  of its own). Built in CI's Linux container; the iPhone and the Mac
+  pictured on GitHub's `xcode-27` runners, the web in Ubuntu's Chrome, and
+  Android on an emulator leased from OS Server (the compiler it carries is
+  arm64's alone). Only CI's proof counts; Reviews holds a release until its
+  commit has one. Run by hand elsewhere, stamp the build's version into the
+  working tree first (`tools/playground/stamp.py 0.47.N`) and check the
+  files out after; the web Playground's compiler is the in-browser one an
+  earlier site staged (`--web-toolchain <its playground/toolchain>`).
+  `tests/e2e/run.py` still drives what a reader does on an emulator and a
+  simulator before a build goes to a phone.
 - iOS: on a simulator. `bazel run //apple/playground_ios_application:run`
   builds, installs and launches there with the host toolchain; with the
   embedded compiler staged for the simulator the app compiles in-process, and

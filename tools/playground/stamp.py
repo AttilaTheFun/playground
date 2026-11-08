@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Stamps a build's version into the Isomer app's working tree, as CI does
+"""Stamps a build's version into the Playground's working tree, as CI does
 for a build of a commit (the commit itself keeps MAJOR.MINOR.0):
 
-    tools/playground/stamp.py 0.38.4      # from examples/playground/
+    tools/playground/stamp.py 0.47.4      # from anywhere
 
 The visible version everywhere the app shows or reports it: Android's
 versionName and versionCode (MAJOR x 1,000,000 + MINOR x 1,000 + BUILD), the

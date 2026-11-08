@@ -20,8 +20,8 @@
 #   ]
 #
 # The wasm must be a Isomer feature bundle (a `iso_hot` reactor —
-# what `bazel build //wasm/<feature>:<name>.wasm` in the examples module
-# produces, or the Playground's own builds), compiled against the same
+# what `bazel build //wasm/<feature>:<name>.wasm` in isomer's examples
+# module produces, or the Playground's own builds), compiled against the same
 # framework version the Playground embeds; a mismatch fails to load and the
 # reloader shows the load error.
 set -euo pipefail
