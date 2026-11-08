@@ -8,14 +8,17 @@
 # config written here, and its Bazel reads that server's cache: no host is
 # named in the repository.
 #
-#   tools/ci/container_build.sh [<bazel build args>…]   # default: every app
-#   tools/ci/container_build.sh all   # every app built, nothing run or
-#                                     # copied: main's populate (the Bazel
-#                                     # cache's one writer: OS Server grants
-#                                     # that job the write)
-#   tools/ci/container_build.sh pr    # the same build: a pull request's
-#                                     # (the tests without a GUI join it as
-#                                     # the Playground gets them)
+#   tools/ci/container_build.sh [<bazel build args>…]   # default: every
+#                                     # app, then the tests without a GUI
+#                                     # (verify's)
+#   tools/ci/container_build.sh all   # every app and test built, nothing
+#                                     # run or copied: main's populate (the
+#                                     # Bazel cache's one writer: OS Server
+#                                     # grants that job the write)
+#   tools/ci/container_build.sh pr    # the default's build and tests: a pull
+#                                     # request's (the owner, 2026-11-08:
+#                                     # headless tests before a merge, builds
+#                                     # after one)
 #   tools/ci/container_build.sh package <dir> <bazel build args>…
 #                                     # the build, then the targets' packages
 #                                     # (.ipa, a Mac app's .zip, the signed
@@ -27,11 +30,18 @@
 #   OSS_FILES_HOST   the name the container reaches this Mac's OS Server by
 #                    (default: this Mac's tailnet name, from Tailscale)
 #   ISOMER_CI_IMAGE  the image (default: Visor's agent image, tools/ci/agent_image)
-#   ISOMER_CI_VOLUME Bazel's tree, kept between builds (default: isomer-ci;
+#   ISOMER_CI_VOLUME Bazel's tree, kept between builds (default: playground-ci;
 #                    `:keep`, so OS Server keeps it when the lease ends)
 #
 # The Playground's compilers must be staged first
 # (tools/ci/stage_playground_compilers.sh): the apps carry them.
+#
+# The tests without a GUI (the steps' tests, below) are the sites' import
+# checks: a page whose site lacks a module it imports is blank, and only the
+# browser's console says why. templates_compile_test needs a Mac's host
+# toolchain (dev_compile_server.py reads Xcode's), and the GUI tests
+# (tests/e2e, the iPhone's XCUITest probe) need a simulator and an
+# emulator: neither runs here.
 #
 # package (the publishing jobs', as AttilaTheFun/reviews' container_build.sh
 # has it): Bazel's tree is the container's (a volume), so what CI publishes
@@ -45,10 +55,10 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 IMAGE="${ISOMER_CI_IMAGE:-$(cat "$ROOT/tools/ci/agent_image")}"
-VOLUME="${ISOMER_CI_VOLUME:-isomer-ci}"
+VOLUME="${ISOMER_CI_VOLUME:-playground-ci}"
 SDK_SHA256="251c252f7f41bcd3e08655e49e182686682d705945f4a2807049b9051c606ebb"
 
-# In CI the job's own container builds (the isomer-jit runners: OS Server's
+# In CI the job's own container builds (the playground-jit runners: OS Server's
 # single-use Linux containers, its cache's read token in ~/.netrc and its
 # cache in ~/.bazelrc already), in place. On a Mac (OS Server's own, whose
 # folders containers may mount) it leases one, as before.
@@ -104,12 +114,17 @@ elif [ $# -eq 0 ] || [ "$*" = all ] || [ "$*" = pr ]; then
         //android/playground_android_application:playground_android_application_apk
 fi
 
-# In the container: the build, or (package) the build and the packages
-# copied out, Bazel
-# reading the cache (--cache writes the container's ~/.bazelrc).
+# In the container: the build and the tests without a GUI, or (package) the
+# build and the packages copied out, Bazel reading the cache (--cache writes
+# the container's ~/.bazelrc).
 steps='
 root=$1 mode=$2 out=$3; shift 3
 cd "$root"
+# The tests without a GUI (above).
+tests=(
+    //apple/playground_ios_application:playground_site_imports_test
+    //web/splash_web_application:site_imports_test
+)
 flags=(--config=apple_on_linux "--downloader_config=$root/.ci/downloader.cfg")
 # A pull request never writes the cache (OS Server grants populate alone the write).
 [ "$mode" != pr ] || flags+=(--noremote_upload_local_results)
@@ -119,6 +134,18 @@ logs="${ISOMER_EXECUTION_LOGS:-}"
 log_of() { [ -z "$logs" ] || printf -- "--execution_log_compact_file=%s/%s.zst" "$logs" "$1"; }
 bazel build --keep_going "${flags[@]}" $(log_of build) "$@"
 built=$?
+# The tests without a GUI, after the targets: run, or (all: main builds
+# alone, to fill the cache) built.
+if [ "$mode" = all ]; then
+    bazel build --keep_going "${flags[@]}" $(log_of tests) "${tests[@]}"
+    tested=$?
+elif [ "$mode" = checks ] || [ "$mode" = pr ]; then
+    bazel test --keep_going "${flags[@]}" $(log_of tests) --test_output=errors "${tests[@]}"
+    tested=$?
+else
+    tested=0
+fi
+[ $built -ne 0 ] || built=$tested
 if [ "$mode" = package ]; then
     [ $built -eq 0 ] || exit $built
     options=()

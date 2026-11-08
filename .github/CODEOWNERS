@@ -1,8 +1,9 @@
 # Pull requests that touch these paths need the code owner's review: CI,
-# what publishes, stamps, signs or notarizes builds, and the license. The
-# agents' AGENTS.md is context, not a boundary: an agent edits it as any
-# other file (what must hold is checked by CI). Anything else may be merged
-# by an agent once CI is green and the branch is up to date with main.
+# and what publishes, stamps, signs or notarizes builds (a LICENSE joins
+# them once there is one). The agents' AGENTS.md is context, not a
+# boundary: an agent edits it as any other file (what must hold is checked
+# by CI). Anything else may be merged by an agent once CI is green and the
+# branch is up to date with main. As isomer's CODEOWNERS.
 
 # CI: its workflows, and this file.
 /.github/ @AttilaTheFun
@@ -11,5 +12,11 @@
 /tools/playground/package_site.sh @AttilaTheFun
 /tools/playground/stamp.py @AttilaTheFun
 /tools/signing/ @AttilaTheFun
+/tools/ci/check_mac_icons.sh @AttilaTheFun
+/tools/ci/connect_from_ci.sh @AttilaTheFun
+/tools/ci/next_version.sh @AttilaTheFun
+/tools/ci/promote_from_ci.sh @AttilaTheFun
+/tools/ci/publish_from_ci.sh @AttilaTheFun
+/tools/ci/stamp_apps.sh @AttilaTheFun
 # The compilers the published Playground carries, by SHA-256.
 /tools/ci/stage_playground_compilers.sh @AttilaTheFun
