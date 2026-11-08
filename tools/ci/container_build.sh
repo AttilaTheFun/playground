@@ -93,12 +93,15 @@ if [ "${1:-}" = package ]; then
 elif [ $# -eq 0 ] || [ "$*" = all ] || [ "$*" = pr ]; then
     mode=checks
     [ $# -eq 0 ] || mode="$*"
+    # The iPhone's for the simulator: a device build needs a provisioning
+    # profile, which only the publishing jobs make up (--config=ci_device).
+    # Linux's app waits for isomer 0.47, whose Linux wasm cell builds again
+    # (isomer 0.46's can't see its host's render flag).
     set -- --ios_multi_cpus=sim_arm64 \
-        //apple/playground_ios_application:playground_ios_application \
+        //apple/playground_ios_application:playground_ios_sim_application \
         //apple/playground_macos_application:playground_macos_application \
         //web/playground_web_application \
-        //android/playground_android_application:playground_android_application_apk \
-        //linux/playground_linux_application:playground_linux_application_bin
+        //android/playground_android_application:playground_android_application_apk
 fi
 
 # In the container: the build, or (package) the build and the packages
