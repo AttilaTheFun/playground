@@ -31,14 +31,16 @@
 #     branch pushed at an earlier one;
 #   - prerelease (main): alpha alone: its version asked of Applications
 #     Server, the Playground built for the iPhone and iPad (.ipa), the Mac
-#     (.zip) and Android (.apk) as Alphas, published (the server signs the
-#     Apple ones, and notarizes the Mac's), the web site packaged, and a
-#     draft release marked pre-release (tools/ci/draft_release.sh). No tests;
+#     (.zip) and Android (.apk) as Alphas and the web site packaged (alpha),
+#     the Mac app's icon checked on GitHub's own Mac (icons), published (the
+#     server signs the Apple ones, and notarizes the Mac's) with a draft
+#     release marked pre-release (publish, tools/ci/draft_release.sh). No
+#     tests;
 #   - release (main): verify and the proof, then, only once they pass,
 #     alpha, and a draft release proposed for release, naming this run;
 #   - adhoc (a branch other than main or a release branch): the apps built
-#     as an AdHoc build and published, how a pull request's build reaches a
-#     phone.
+#     as an AdHoc build, checked and published as alpha's (icons, publish),
+#     how a pull request's build reaches a phone.
 #   Drafts are CI's: no agent publishes one or makes a tag.
 # - release (the owner publishes a proposed release in Reviews, which makes
 #   its v* tag): its commit checked to be main's and verified
@@ -322,10 +324,9 @@ jobs:
     # A proposal, by hand on main: prerelease alone, or release once verify
     # and the proof have passed. Its version asked of Applications Server,
     # stamped in (tools/ci/stamp_apps.sh), the apps built in a Linux
-    # container (tools/ci/container_build.sh package), the Mac app's icon
-    # checked for the dark appearance, published (tools/ci/publish_from_ci.sh;
-    # the server signs the Apple ones and notarizes the Mac's), the web site
-    # packaged, and the draft release made (tools/ci/draft_release.sh).
+    # container (tools/ci/container_build.sh package) and the web site
+    # packaged, kept for a day as the `packages` artifact, which icons
+    # checks and publish publishes.
     needs: [verify, proof, proof-compare]
     if: >-
       always() && github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' &&
@@ -335,23 +336,25 @@ jobs:
     runs-on: [self-hosted, playground-jit]
     timeout-minutes: 180
     permissions:
-      # The draft release.
-      contents: write
+      contents: read
       # The OIDC token Applications Server checks.
       id-token: write
+    outputs:
+      version: ${{ steps.version.outputs.version }}
     steps:
       - uses: actions/checkout@v5
-        with:
-          # The draft's changes since the previous release.
-          fetch-depth: 0
       # The builds' version, MAJOR.MINOR.N: the next of the committed line
       # for the token's commit, from Applications Server (the same again for
       # the same commit), stamped into the checkout before the build and
       # never committed.
       - name: Version
+        id: version
         env:
           APPLICATIONS_CI_CODE: ${{ secrets.APPLICATIONS_CI_CODE }}
-        run: tools/ci/stamp_apps.sh
+        run: |
+          tools/ci/stamp_apps.sh
+          version="$(sed -n '/CFBundleShortVersionString/{n;s/.*<string>\(.*\)<\/string>.*/\1/p;}' apple/playground_ios_application/Info.plist)"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
       # The compilers from OS Server's files, into the checkout's gitignored
       # folders: the iPhone's (linked into the device's app), the Mac's (its
       # Resources'), Android's (the APK's) and the browser's (the site's).
@@ -363,36 +366,26 @@ jobs:
         env:
           ISOMER_CI_VOLUME: playground-ci-publish
         run: exec tools/ci/container_build.sh package .ci/packages --config=alpha $PUBLISHED_APPS
-      # Nothing is published if the Mac app's icon has no dark appearance.
-      - name: The icon's dark appearance
-        run: tools/ci/check_mac_icons.sh .ci/packages
-      - name: Notes
-        run: git log -1 --format=%B > "$RUNNER_TEMP/notes.md"
-      - name: Publish
-        env:
-          APPLICATIONS_CI_CODE: ${{ secrets.APPLICATIONS_CI_CODE }}
-        run: tools/ci/publish_from_ci.sh --notes-file "$RUNNER_TEMP/notes.md" .ci/packages/*.zip .ci/packages/*.ipa .ci/packages/*.apk
       # The web site the release carries, which pages.yml deploys when it's
       # published: stamped with the version above, its in-browser compiler
-      # the one staged from OS Server's files.
+      # the one staged from OS Server's files. Beside the apps, so publish
+      # finds it in the artifact.
       - name: The site
         run: >-
           tools/playground/package_site.sh
           --toolchain-from web/playground_web_application/staged_toolchain
-          --out "$GITHUB_WORKSPACE/.ci/playground-site.tar.gz"
-      - name: The draft release
-        env:
-          GH_TOKEN: ${{ github.token }}
-          KIND: ${{ inputs.run }}
-        run: |
-          version="$(sed -n '/CFBundleShortVersionString/{n;s/.*<string>\(.*\)<\/string>.*/\1/p;}' apple/playground_ios_application/Info.plist)"
-          tools/ci/draft_release.sh "$version" "$KIND" .ci/playground-site.tar.gz
+          --out "$GITHUB_WORKSPACE/.ci/packages/playground-site.tar.gz"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: packages
+          path: .ci/packages
+          retention-days: 1
 
   # AdHoc: a branch built by hand (workflow_dispatch with run: adhoc, on a
   # branch that is neither main nor a release branch), the apps built as
-  # alpha's are with --config=adhoc and published; the server takes them as
-  # AdHoc builds, kept a week. The build itself stops a tree that doesn't
-  # build.
+  # alpha's are with --config=adhoc, then checked and published as alpha's
+  # (icons, publish); the server takes them as AdHoc builds, kept a week.
+  # The build itself stops a tree that doesn't build.
   adhoc:
     if: >
       github.event_name == 'workflow_dispatch' && inputs.run == 'adhoc' &&
@@ -414,16 +407,68 @@ jobs:
         env:
           ISOMER_CI_VOLUME: playground-ci-publish
         run: exec tools/ci/container_build.sh package .ci/packages --config=adhoc $PUBLISHED_APPS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: packages
+          path: .ci/packages
+          retention-days: 1
+
+  # Nothing is published if the Mac app's icon has no dark appearance
+  # (tools/ci/check_mac_icons.sh, with Xcode's assetutil): a public
+  # repository checks on GitHub's own Mac, a private copy on a slot of OS
+  # Server's primary Mac.
+  icons:
+    needs: [alpha, adhoc]
+    if: ${{ always() && (needs.alpha.result == 'success' || needs.adhoc.result == 'success') }}
+    runs-on: ${{ github.event.repository.private && fromJSON('["self-hosted", "playground-jit"]') || 'xcode-27' }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v4
+        with:
+          name: packages
+          path: .ci/packages
       - name: The icon's dark appearance
         run: tools/ci/check_mac_icons.sh .ci/packages
-      # The branch's commit's message, from git: a run by hand has no
-      # head_commit in its event.
+
+  # The checked builds published (tools/ci/publish_from_ci.sh: the server
+  # signs the Apple ones and notarizes the Mac's), and for alpha the draft
+  # release made with the web site (tools/ci/draft_release.sh), named for
+  # the version alpha was given.
+  publish:
+    needs: [alpha, adhoc, icons]
+    if: ${{ always() && needs.icons.result == 'success' && (needs.alpha.result == 'success' || needs.adhoc.result == 'success') }}
+    runs-on: [self-hosted, playground-jit]
+    timeout-minutes: 60
+    permissions:
+      # The draft release.
+      contents: write
+      # The OIDC token Applications Server checks.
+      id-token: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # The draft's changes since the previous release.
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          name: packages
+          path: .ci/packages
+      # The commit's message, from git: a run by hand has no head_commit in
+      # its event.
       - name: Notes
         run: git log -1 --format=%B > "$RUNNER_TEMP/notes.md"
       - name: Publish
         env:
           APPLICATIONS_CI_CODE: ${{ secrets.APPLICATIONS_CI_CODE }}
         run: tools/ci/publish_from_ci.sh --notes-file "$RUNNER_TEMP/notes.md" .ci/packages/*.zip .ci/packages/*.ipa .ci/packages/*.apk
+      - name: The draft release
+        if: needs.alpha.result == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          KIND: ${{ inputs.run }}
+          VERSION: ${{ needs.alpha.outputs.version }}
+        run: tools/ci/draft_release.sh "$VERSION" "$KIND" .ci/packages/playground-site.tar.gz
 
   # A release: when the owner publishes a GitHub release (its v0.47.N tag on
   # a main commit, whose proof is in). Nothing Apple is rebuilt: the
