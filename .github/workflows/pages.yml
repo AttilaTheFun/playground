@@ -12,8 +12,8 @@
 # tools/browser_toolchain, which no runner has (CI stages it from OS
 # Server's files).
 #
-# On GitHub's own runner for this public repository (OS Server's single-use
-# Linux containers for a private copy), with curl and tar alone: the asset
+# In CI's Linux container, as every job but the GUI tests (OS Server's
+# single-use containers), with curl and tar alone: the asset
 # comes from the release's public download URL (no gh), and the Pages
 # artifact is made here, the plain tar upload-pages-artifact would make.
 # The site is already dereferenced (package_site.sh), so tar archives it as
@@ -46,7 +46,7 @@ concurrency:
   group: pages
 jobs:
   deploy:
-    runs-on: ${{ github.event.repository.private && fromJSON('["self-hosted", "playground-jit"]') || 'ubuntu-24.04' }}
+    runs-on: [self-hosted, playground-jit]
     timeout-minutes: 30
     environment:
       name: github-pages
