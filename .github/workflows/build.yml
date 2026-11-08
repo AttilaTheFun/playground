@@ -1,0 +1,74 @@
+# The Playground's CI, as isomer's, by the owner's policy for protected
+# repositories (AttilaTheFun/reviews' docs/CI_POLICY.md, and the shape of
+# 2026-11-08: tests without a GUI before a merge, builds after one, the GUI
+# tests and the proof by hand on GitHub's runners):
+#
+# - container (every pull request from a branch of this repository: a
+#   self-hosted runner never runs a fork's code): every app built in one
+#   Linux container on OS Server's on-demand runners (tools/ci/
+#   container_build.sh pr: the iPhone's, the Mac's, the web's, Android's and
+#   Linux's, the Apple ones with rules_applecross), reading OS Server's Bazel
+#   cache and never writing it. The required check. A newer push cancels its
+#   run.
+# - populate (each commit on main): the same build of the merged tree, the
+#   one job that writes OS Server's Bazel cache.
+#
+# By hand (verify, prerelease, release: the GUI tests, the proof, the
+# Alphas and the draft release) follows in the next change.
+
+name: Build
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.event_name == 'pull_request' && format('build-pr-{0}', github.head_ref) || format('build-{0}', github.run_id) }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  container:
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: [self-hosted, playground-jit]
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v5
+      # The compilers the apps carry, from OS Server's files.
+      - name: The Playground's compilers
+        run: tools/ci/stage_playground_compilers.sh ios-simulator macos android web
+      - name: Every app, built
+        env:
+          ISOMER_EXECUTION_LOGS: ${{ runner.temp }}/execution-logs
+        run: exec tools/ci/container_build.sh pr
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: execution-logs
+          path: ${{ runner.temp }}/execution-logs
+          retention-days: 7
+
+  populate:
+    # Each commit on main: the merged tree built as container builds it,
+    # nothing run or published. OS Server grants this job alone the cache's
+    # write (its ci.populate).
+    if: github.event_name == 'push'
+    runs-on: [self-hosted, playground-jit]
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v5
+      - name: The Playground's compilers
+        run: tools/ci/stage_playground_compilers.sh ios-simulator macos android web
+      - name: Every app, built into the cache
+        env:
+          ISOMER_EXECUTION_LOGS: ${{ runner.temp }}/execution-logs
+        run: exec tools/ci/container_build.sh all
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: execution-logs
+          path: ${{ runner.temp }}/execution-logs
+          retention-days: 7

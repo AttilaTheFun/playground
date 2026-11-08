@@ -1,0 +1,15 @@
+# Pull requests that touch these paths need the code owner's review: CI,
+# what publishes, stamps, signs or notarizes builds, and the license. The
+# agents' AGENTS.md is context, not a boundary: an agent edits it as any
+# other file (what must hold is checked by CI). Anything else may be merged
+# by an agent once CI is green and the branch is up to date with main.
+
+# CI: its workflows, and this file.
+/.github/ @AttilaTheFun
+
+# Publishing, versions and signing.
+/tools/playground/package_site.sh @AttilaTheFun
+/tools/playground/stamp.py @AttilaTheFun
+/tools/signing/ @AttilaTheFun
+# The compilers the published Playground carries, by SHA-256.
+/tools/ci/stage_playground_compilers.sh @AttilaTheFun
