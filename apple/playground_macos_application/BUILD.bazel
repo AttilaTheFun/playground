@@ -9,7 +9,7 @@ load("//tools/variant:defs.bzl", "variant_infoplist")
 # iPhone carries, and a build runs in a WasmView (WasmKit, the SwiftUI tree
 # renderer).
 #
-#   bazel build //playground/apple/playground_macos_application
+#   bazel build //apple/playground_macos_application
 
 # BuildVariant and the name under its icon (//tools/variant), as the
 # iPhone's; one bundle id for both. No entitlements here: Applications' app
@@ -26,14 +26,14 @@ variant_infoplist(
 swift_library(
     name = "playground_macos_lib",
     srcs = [
-        "//playground/apple/compiler:srcs",
-        "//playground/apple/host:srcs",
-        "//playground/shared/app:srcs",
+        "//apple/compiler:srcs",
+        "//apple/host:srcs",
+        "//shared/app:srcs",
     ],
     module_name = "PlaygroundMac",
     tags = ["manual"],
     deps = [
-        "//playground/apple/platform_services_host",
+        "//apple/platform_services_host",
         "@isomer//apple/libraries/swift_ui:isomer",
         "@isomer//apple/libraries/wasm_view",
         "@isomer//shared/platform_services",
@@ -60,12 +60,12 @@ filegroup(
             "**/.DS_Store",
         ],
     ),
-    visibility = ["//playground/shared/compiler:__pkg__"],
+    visibility = ["//shared/compiler:__pkg__"],
 )
 
 macos_application(
     name = "playground_macos_application",
-    app_icons = ["//playground/artwork/playground_icon:app_icon"],
+    app_icons = ["//artwork/playground_icon:app_icon"],
     bundle_id = "com.LoganShire.IsomerPlayground",
     bundle_name = "Playground",
     infoplists = [
@@ -74,8 +74,8 @@ macos_application(
     ],
     minimum_os_version = "15.0",
     resources = [
-        "//playground/shared/compiler:toolchain",
-        "//playground/apple/playground_ios_application:playground_sdk",
+        "//shared/compiler:toolchain",
+        "//apple/playground_ios_application:playground_sdk",
     ],
     deps = [":playground_macos_lib"],
 )

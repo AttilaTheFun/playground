@@ -3,13 +3,13 @@
 # and launch with the HOST SwiftWasm toolchain paths injected via
 # SIMCTL_CHILD_* — the simulator compile backend posix_spawns those binaries
 # (a sim app is an unhardened macOS process). Usage:
-#   bazel run //playground/apple/playground_ios_application:run
+#   bazel run //apple/playground_ios_application:run
 set -euo pipefail
 
 : "${BUILD_WORKSPACE_DIRECTORY:?run via 'bazel run', not directly}"
 cd "$BUILD_WORKSPACE_DIRECTORY"
 
-APP="//playground/apple/playground_ios_application"
+APP="//apple/playground_ios_application"
 BUNDLE_ID="com.LoganShire.Isomer"
 
 echo "==> Building the Playground app for the simulator..."
@@ -24,7 +24,7 @@ fi
 bazel build "$APP" "${IOS_FLAGS[@]}"
 # Force-fetch the wasm toolchain repos (a cold cache would otherwise leave
 # the paths below dangling) — cheap when cached.
-bazel build //playground/apple/playground_ios_application:playground_sdk >/dev/null 2>&1 || true
+bazel build //apple/playground_ios_application:playground_sdk >/dev/null 2>&1 || true
 
 OUTPUT_BASE="$(bazel info output_base)"
 TOOLCHAIN_BIN="$OUTPUT_BASE/external/rules_swift++swift+swift_toolchain_xcode/usr/bin"

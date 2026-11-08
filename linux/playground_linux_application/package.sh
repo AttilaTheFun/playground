@@ -25,10 +25,10 @@ execution_root="$(bazel info execution_root 2>/dev/null)"
 files() { bazel cquery "$@" --output=files 2>/dev/null | sed "s|^|$execution_root/|"; }
 output_base="$(bazel info output_base 2>/dev/null)"
 flags=("$@")
-cp -L "$(files "${flags[@]}" //playground/linux/playground_linux_application:playground_linux_application_bin)" "$out/playground"
-cp -L "$(files "${flags[@]}" //playground/linux/playground_linux_application:playground_wasm_loader)" "$out/playground_wasm_loader"
-cp -RL "$(files "${flags[@]}" //playground/shared/compiler:toolchain)/playground_toolchain" "$out/playground_toolchain"
-cp -RL "$(files "${flags[@]}" //playground/apple/playground_ios_application:playground_sdk)" "$out/playground_sdk"
+cp -L "$(files "${flags[@]}" //linux/playground_linux_application:playground_linux_application_bin)" "$out/playground"
+cp -L "$(files "${flags[@]}" //linux/playground_linux_application:playground_wasm_loader)" "$out/playground_wasm_loader"
+cp -RL "$(files "${flags[@]}" //shared/compiler:toolchain)/playground_toolchain" "$out/playground_toolchain"
+cp -RL "$(files "${flags[@]}" //apple/playground_ios_application:playground_sdk)" "$out/playground_sdk"
 # Bazel's outputs are read-only; the copies are the package's own.
 chmod -R u+w "$out/playground_toolchain" "$out/playground_sdk"
 # The swift.org toolchain is Ubuntu 24.04's: its lld loads libxml2.so.2 (and

@@ -9,12 +9,12 @@ swift_library(
     srcs = [
         "Splash.swift",
         # The embedded examples: the example apps' own screens.
-        "//playground/shared/sample_sources:Availability.swift",
-        "//playground/shared/sample_sources:Counter.swift",
-        "//playground/shared/sample_sources:Game2048.swift",
-        "//playground/shared/sample_sources:PlatformServicesAccess.swift",
-        "//playground/shared/sample_sources:Pokedex.swift",
-        "//playground/shared/sample_sources:URLEncoding.swift",
+        "//shared/sample_sources:Availability.swift",
+        "//shared/sample_sources:Counter.swift",
+        "//shared/sample_sources:Game2048.swift",
+        "//shared/sample_sources:PlatformServicesAccess.swift",
+        "//shared/sample_sources:Pokedex.swift",
+        "//shared/sample_sources:URLEncoding.swift",
     ],
     alwayslink = True,
     copts = ["-parse-as-library"],
@@ -33,7 +33,7 @@ isomer_web_app(
     name = "splash_web_application",
     # Its page imports the Playground's bridge, which the combined site has.
     check_site_imports = False,
-    assets = ["//playground/artwork/playground_icon:web_icon"],
+    assets = ["//artwork/playground_icon:web_icon"],
     index = "index.html",
     query = "renderer=react",
     site_visibility = ["//visibility:public"],
@@ -45,7 +45,7 @@ combine_sites(
     name = "site",
     sites = {
         ":splash_web_application_site": ".",
-        "//playground/web/playground_web_application:playground_web_application_site": "playground",
+        "//web/playground_web_application:playground_web_application_site": "playground",
     },
 )
 

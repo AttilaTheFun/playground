@@ -10,7 +10,7 @@ if [ -z "${ISO_BASE_TC:-}" ]; then
 fi
 export ISO_BASE_TC
 # The SwiftWasm SDK's wasm32-unknown-wasip1 slice: by default the one Bazel
-# fetched for the examples' module (`bazel build //playground/apple/playground_ios_application:playground_sdk`
+# fetched for the examples' module (`bazel build //apple/playground_ios_application:playground_sdk`
 # from playground/ fetches it), found under its output base.
 if [ -z "${ISO_WASM_SDK:-}" ]; then
     _iso_output_base="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && bazel info output_base 2>/dev/null)"

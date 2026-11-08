@@ -21,7 +21,7 @@ playground_toolchain(
     name = "toolchain",
     files = [":wasm_sdk_files"],
     staged = select({
-        "@platforms//os:macos": ["//playground/apple/playground_macos_application:staged_toolchain"],
+        "@platforms//os:macos": ["//apple/playground_macos_application:staged_toolchain"],
         "//conditions:default": [],
     }),
     tags = ["manual"],

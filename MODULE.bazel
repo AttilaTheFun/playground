@@ -1,0 +1,357 @@
+"""The Playground: write SwiftUI on the device, build it there, run it there,
+on Isomer (the iPhone, the Mac, the web, Android). An application on isomer
+and AgentUI, as Visor is (docs/: what it is and how it's built; AGENTS.md its
+guide). It was isomer's examples/playground until 0.47.
+
+isomer comes from the project's registry by version (.bazelrc lists it before
+the BCR), and its Swift through third_party/swift_packages' Package.swift by
+the release's tag; AgentUI and UpdateKit by version there too.
+
+    bazel build //apple/playground_ios_application //web/playground_web_application
+"""
+
+module(
+    name = "playground",
+    version = "0.47.0",
+)
+
+bazel_dep(name = "isomer", version = "0.46.1")
+
+# --- What isomer needs from its consumer -------------------------------
+
+# rules_swift: isomer's patched version comes from the project's registry
+# (.bazelrc lists it before the BCR), patches and all: 4.2.2.isomer.3, which
+# sorts above the 4.2.2 rules_applecross asks for, so it needs no override.
+bazel_dep(name = "rules_swift", version = "4.2.2.isomer.3")
+
+# swift_ffi, swift_gpu and swift_map are part of the isomer module
+# (`@isomer//swift_ffi/...`, `@isomer//swift_gpu/...`, `@isomer//swift_map/...`):
+# nothing to pin for them beyond isomer itself. .bazelrc points isomer's
+# map-engine label flags at `@isomer//swift_map/...` so `Map` draws real
+# OpenStreetMap tiles.
+
+# --- SQLite -----------------------------------------------------------------
+# swift_sql (public): SQLite for every platform, the C API as CSwiftSQL and
+# the Swift layer SwiftSQL (the files probe and the WASI check): a Swift
+# package, in the graph below (third_party/swift_packages). It was isomer's
+# until 0.34.
+
+# --- Toolchains (tags are read from the root module) --------------------------
+
+# The swift.org host toolchain + wasm/Android Swift SDK cross toolchains.
+swift = use_extension("@rules_swift//swift:extensions.bzl", "swift")
+swift.toolchain(
+    name = "swift_toolchain",
+    swift_version = "6.4.2",
+)
+swift.wasm_sdk()
+# No wasi-threads SDK beside it since 0.41: Isomer's was a build of
+# Swift 6.3.2 with swiftlang/swift#92018, which reaches a release in 6.5;
+# reactors built for `@isomer//swift_ffi/rules:wasm32-wasip1-threads` wait
+# for it (TODO.md).
+swift.android_sdk()
+use_repo(
+    swift,
+    "swift_toolchain",
+    "swift_toolchain_ubuntu24.04-aarch64",
+    "swift_toolchain_xcode",
+)
+
+register_toolchains(
+    "@swift_toolchain//:cc_toolchain_wasm32_xcode",
+    "@swift_toolchain//:swift_toolchain_wasm32_xcode",
+    "@swift_toolchain//:swift_toolchain_android_aarch64_xcode",
+    "@swift_toolchain//:swift_toolchain_android_x86_64_xcode",
+)
+
+register_toolchains(
+    "@swift_toolchain//:swift_toolchain_exec_ubuntu24.04",
+    "@swift_toolchain//:cc_toolchain_wasm32_ubuntu24.04",
+    "@swift_toolchain//:swift_toolchain_wasm32_ubuntu24.04",
+    "@swift_toolchain//:swift_toolchain_android_aarch64_ubuntu24.04",
+    "@swift_toolchain//:swift_toolchain_android_x86_64_ubuntu24.04",
+    # arm64 Linux (and the OS Server containers tools/linux/build.sh and CI build in).
+    "@swift_toolchain//:swift_toolchain_exec_ubuntu24.04-aarch64",
+    "@swift_toolchain//:cc_toolchain_wasm32_ubuntu24.04-aarch64",
+    "@swift_toolchain//:swift_toolchain_wasm32_ubuntu24.04-aarch64",
+    "@swift_toolchain//:swift_toolchain_android_aarch64_ubuntu24.04-aarch64",
+    "@swift_toolchain//:swift_toolchain_android_x86_64_ubuntu24.04-aarch64",
+)
+
+# The Apple apps built on Linux (a container, a VM): rules_applecross, as in
+# isomer's MODULE.bazel (which says why each piece): the Swift that built
+# Xcode 27.0's SDKs for the Apple targets alone, the SDK archive by a
+# placeholder each builder's .bazelrc.user resolves (`--distdir`, or a
+# `--downloader_config` to an OS Server's /files/sha256/<hex>), and its
+# toolchains turned on by .bazelrc's apple_on_linux. A Mac builds as before.
+# The project registry's 0.0.3.382f8c3: rules_applecross's main at 382f8c3
+# (#289: an imported dynamic framework's lipo on Linux), with the preset
+# rules_apple above.
+bazel_dep(name = "rules_applecross", version = "0.0.3.382f8c3")
+apple_cross_toolchain = use_extension("@rules_applecross//toolchain:extensions.bzl", "apple_cross_toolchain")
+apple_cross_toolchain.swift(
+    name = "applecross_swift",
+    platform_sha256 = {
+        "ubuntu24.04": "69f7b2b4dbce6090b6c92194b71149a057e16269093b5a9dded38afc4a05094e",
+        "ubuntu24.04-aarch64": "21eacfe571194717d269cc1e0030533bbee6131dfde82cd4f9cfbc2512e354a9",
+        "xcode": "8fd03185b98fe27f54a54631c2449decf75d5b466ce8e34abbd414141063c6aa",
+    },
+    swift_version = "6.4.0",
+)
+apple_cross_toolchain.configure(
+    name = "apple_cross_toolchain",
+    apple_sdk_urls = ["https://apple-sdks.invalid/apple-sdks-27.0.tar.gz"],
+    local_xcode = True,
+    # Its ported tools from its main, ahead of a release (tools/applecross).
+    ported_tools_manifest = "//tools/applecross:ported_tools.sha256",
+    ported_tools_urls = ["https://ported-tools.invalid/sha256/{sha256}"],
+    swift_tools = {
+        "aarch64": "@applecross_swift_ubuntu24.04-aarch64//:tools",
+        "x86_64": "@applecross_swift_ubuntu24.04//:tools",
+    },
+    swift_tools_macos = "@applecross_swift_xcode//:tools",
+    xcode_version = "27.0",
+)
+use_repo(apple_cross_toolchain, "apple_cross_toolchain")
+register_toolchains(
+    "@rules_applecross//toolchain:apple_bundling_on_linux",
+    "@rules_applecross//toolchain:apple_bundling_on_macos",
+)
+
+# The hermetic Android NDK/SDK (the extension requires root-module tags even
+# for Apple-only builds; accept the licenses in .bazelrc).
+# The project registry's 0.5.0.isomer.1 (isomer's, with Linux hosts of any
+# CPU), which isomer asks for: no override (before 0.42 each consumer carried
+# the patch in its own).
+bazel_dep(name = "hermetic_android_toolchains", version = "0.5.0.isomer.1")
+# A dev dependency (hermetic_android_toolchains 0.5.0 reports its repositories
+# so; it reads the root module's tags alone): each root declares its own.
+android = use_extension("@hermetic_android_toolchains//:extensions.bzl", "android", dev_dependency = True)
+android.sdk(
+    build_tools_version = "35.0.0",
+    version = "35",
+)
+android.ndk(
+    api_level = 28,
+    version = "r30",
+)
+use_repo(android, "androidndk", "androidsdk")
+
+bazel_dep(name = "rules_android", version = "0.7.3")
+
+# Point rules_android at the hermetic @androidsdk (instead of $ANDROID_HOME).
+rules_android_sdk = use_extension(
+    "@rules_android//rules/android_sdk_repository:rule.bzl",
+    "android_sdk_repository_extension",
+    dev_dependency = True,
+)
+override_repo(rules_android_sdk, "androidsdk")
+
+register_toolchains(
+    "@androidndk//:all",
+    "@androidsdk//:all",
+    dev_dependency = True,
+)
+
+# --- Signing -------------------------------------------------------------------
+# The builder's own Apple team for the examples' device builds, from
+# ISOMER_TEAM_ID in an untracked .bazelrc.user
+# (`common --repo_env=ISOMER_TEAM_ID=<team>`, tools/signing); simulator and
+# Mac builds need nothing.
+signing = use_extension("//tools/signing:extension.bzl", "signing")
+use_repo(signing, "isomer_signing")
+
+# --- Example-only dependencies ------------------------------------------------
+
+bazel_dep(name = "bazel_skylib", version = "1.9.0")
+bazel_dep(name = "platforms", version = "1.1.0")
+# rules_apple and apple_support at rules_applecross's versions: the
+# registry's preset rules_apple 5.3.1.applecross.6 (rules_applecross's
+# patches) and the BCR's apple_support 2.11.0, as in isomer's MODULE.bazel.
+bazel_dep(name = "rules_apple", version = "5.3.1.applecross.6", repo_name = "build_bazel_rules_apple")
+bazel_dep(name = "apple_support", version = "2.11.0")
+
+# Declared after apple_support so apple_support's apple cc toolchain keeps
+# resolution priority over rules_cc's local_config_cc darwin toolchain.
+bazel_dep(name = "rules_cc", version = "0.2.17")
+bazel_dep(name = "rules_shell", version = "0.8.0")
+
+# Xcode project generation for the Apple example apps
+# (`bazel run //apple/<app>:<app>_project`).
+bazel_dep(name = "rules_xcodeproj", version = "4.1.0")
+
+# SwiftPM packages via rules_swift_package_manager (the graph in
+# //third_party/swift_packages): SwiftProtobuf/gRPC for the proto greeter
+# (swift_proto_library with a custom swift_proto_compiler whose plugin +
+# runtime come from the package — cross-compiled to iOS, wasm32, Android).
+bazel_dep(name = "rules_swift_package_manager", version = "1.25.0.isomer.1")
+
+# rules_swift_package_manager on Windows (the Windows Storybook and
+# Playground): tools/patches/rules_swift_package_manager_windows.patch says
+# what it changes; over the registry's 1.25.0.isomer.1 (isomer's
+# MODULE.bazel says what that carries).
+single_version_override(
+    module_name = "rules_swift_package_manager",
+    patch_strip = 1,
+    patches = [
+        "//tools/patches:rules_swift_package_manager_windows.patch",
+    ],
+)
+
+bazel_dep(name = "protobuf", version = "34.0.bcr.1")
+bazel_dep(name = "rules_proto", version = "7.1.0")
+
+
+# Forward-pin: the transitively-resolved rules_go is too old for Bazel 9 /
+# builds gazelle's repo tools against the host Go (same fix as swift_interop).
+bazel_dep(name = "rules_go", version = "0.61.1")
+
+# rules_swift_package_manager's own extension, which isomer uses too: one
+# graph for this module's packages and Isomer's (Package.swift lists isomer by
+# the release's tag).
+swift_deps = use_extension("@rules_swift_package_manager//:extensions.bzl", "swift_deps")
+swift_deps.from_package(
+    resolved = "//third_party/swift_packages:Package.resolved",
+    swift = "//third_party/swift_packages:Package.swift",
+)
+
+# On wasm and Android `import Foundation` is Isomer's (@isomer//foundation),
+# which a library reaches only by depending on it: the packages built for
+# those platforms depend on @isomer//:foundation (nothing on Apple, where
+# Foundation is the system's).
+swift_deps.configure_package(
+    name = "swift-protobuf",
+    target_deps = {"SwiftProtobuf": ["@isomer//:foundation"]},
+)
+
+# AgentUI (the Playground's agent page) imports SwiftUI and Foundation. On
+# Apple those are the system's; on the web and Android isomer's `SwiftUI` and
+# `Foundation` modules, each reached through one label that resolves per
+# platform (and to nothing on Apple).
+swift_deps.configure_package(
+    name = "agent_ui",
+    target_deps = {
+        "AgentUI": ["@isomer//:swift_ui", "@isomer//:foundation"],
+        "InboxUI": ["@isomer//:swift_ui", "@isomer//:foundation"],
+        "MarkdownViews": ["@isomer//:swift_ui", "@isomer//:foundation"],
+        "MessagesCore": ["@isomer//:swift_ui", "@isomer//:foundation"],
+        "MessagesUI": ["@isomer//:swift_ui", "@isomer//:foundation"],
+        "NavigationUI": ["@isomer//:swift_ui", "@isomer//:foundation"],
+    },
+)
+# UpdateKit (AttilaTheFun/update_kit): the Storybook's and the
+# Playground's iPhone and Mac apps write the build they are for Applications.
+# Apple's alone today, where the label resolves to nothing; on wasm and
+# Android it would be Isomer's Foundation, as for the packages above.
+swift_deps.configure_package(
+    name = "update_kit",
+    target_deps = {
+        "UpdateKit": ["@isomer//:foundation"],
+    },
+)
+use_repo(
+    swift_deps,
+    "swift_package",
+    "swiftpkg_agent_ui",
+    "swiftpkg_swift_protobuf",
+    "swiftpkg_update_kit",
+)
+
+# The generated package repositories see rules_swift_package_manager's
+# repositories; the target_deps above (and isomer's own) name @isomer.
+inject_repo(swift_deps, "isomer")
+
+bazel_dep(name = "rules_java", version = "9.3.0")
+bazel_dep(name = "rules_kotlin", version = "2.2.2")
+bazel_dep(name = "rules_python", version = "2.0.2")
+
+# isomer's dev-tool extensions: hermetic Electron (the desktop wrapper
+# around the wasm app) and the Android emulator/platform-tools bundle the
+# `bazel run` helpers drive.
+wasm_tools = use_extension("@isomer//tools/wasm:extensions.bzl", "wasm_tools")
+use_repo(wasm_tools, "electron", "electron_win64")
+
+android_tools = use_extension("@isomer//tools/android:extensions.bzl", "android_tools")
+use_repo(
+    android_tools,
+    "android_build_tools",
+    "android_emulator",
+    "android_platform_jar",
+    "android_platform_tools",
+    "android_system_image",
+    "hermetic_jdk",
+    "kotlin_compiler",
+)
+
+# rules_android's Maven graph + the Compose/benchmark artifacts the example
+# apps use. Declared from THIS root (bzlmod's rules_jvm_external cannot read a
+# lock file from a non-root module), merging isomer's contribution; the
+# lock is a vendored copy of isomer's.
+#   REPIN=1 bazel run @rules_android_maven//:pin
+bazel_dep(name = "rules_jvm_external", version = "7.1")
+maven = use_extension("@rules_jvm_external//:extensions.bzl", "maven")
+maven.install(
+    name = "rules_android_maven",
+    aar_import_bzl_label = "@rules_android//rules:rules.bzl",
+    known_contributing_modules = [
+        "rules_android",
+        "isomer",
+    ],
+    lock_file = "//:rules_android_maven_install.json",
+    version_conflict_policy = "pinned",
+    repositories = [
+        "https://maven.google.com",
+        "https://repo1.maven.org/maven2",
+    ],
+    use_starlark_android_rules = True,
+)
+use_repo(maven, "rules_android_maven")
+
+# Hermetic Go >= 1.24 for gazelle's repo tooling (rules_android's `ak` Go
+# tools request it; the host Go is not consulted).
+go_sdk = use_extension("@rules_go//go:extensions.bzl", "go_sdk")
+go_sdk.download(version = "1.24.12")
+
+
+# Chrome for Testing, the browser the web apps' tests load their sites in on
+# Linux (//tests/platforms, in CI's container): Google's own build for each
+# Linux architecture, pinned by version. A Mac's tests use the Mac's Chrome.
+# It needs the system libraries a desktop Chrome does (NSS, ATK, GBM, …):
+# tools/ci/container_build.sh installs them in the container.
+chrome_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+
+chrome_archive(
+    name = "chrome_linux_arm64",
+    build_file_content = 'exports_files(["chrome"])\nfilegroup(name = "files", srcs = glob(["**"]), visibility = ["//visibility:public"])',
+    sha256 = "5517510e61657ff43ee9ab804ecd1a499b3d5bd3caf72f097516bd6565ba5a17",
+    strip_prefix = "chrome-linux-arm64",
+    url = "https://storage.googleapis.com/chrome-for-testing-public/157.0.8103.38/linux-arm64/chrome-linux-arm64.zip",
+)
+
+chrome_archive(
+    name = "chrome_linux_x86_64",
+    build_file_content = 'exports_files(["chrome"])\nfilegroup(name = "files", srcs = glob(["**"]), visibility = ["//visibility:public"])',
+    sha256 = "8cdeb344e9b2cefe59f4aea8d1d93d5d93054c03cde217665c16fc1f62e72a66",
+    strip_prefix = "chrome-linux64",
+    url = "https://storage.googleapis.com/chrome-for-testing-public/157.0.8103.38/linux64/chrome-linux64.zip",
+)
+
+# Swift for Windows built on Linux (@isomer//tools/windows): the host's Swift
+# (arm64 Linux: OS Server's containers) with the Windows Swift SDK, out of
+# swift.org's 6.4.2 Windows installer (tools/windows/make_swift_sdk.sh), and
+# Microsoft's SDK and MSVC libraries (make_msvc_sysroot.ps1 and .sh), which
+# may be used but not redistributed: both by placeholders a builder's
+# .bazelrc.user resolves (tools/ci/container_build.sh: OS Server's files, by
+# SHA-256), and turned on by --config=windows_on_linux only.
+swift_windows_sdk = use_repo_rule("@isomer//tools/windows:defs.bzl", "swift_windows_sdk_repository")
+
+swift_windows_sdk(
+    name = "swift_windows_sdk",
+    msvc_sysroot_sha256 = "c800e77cf79ed0174c8a76c9d321f7949524a847d5b70f3cf02b26da6e3f4382",
+    msvc_sysroot_url = "https://windows-sdks.invalid/sha256/c800e77cf79ed0174c8a76c9d321f7949524a847d5b70f3cf02b26da6e3f4382",
+    swift_sdk_sha256 = "e713ff8fba11ab9b93d3e0e0f06ea543b14e01272317ffadf5c4694a6ef25340",
+    swift_sdk_url = "https://windows-sdks.invalid/sha256/e713ff8fba11ab9b93d3e0e0f06ea543b14e01272317ffadf5c4694a6ef25340",
+    swift_toolchain_repo = "swift_toolchain_ubuntu24.04-aarch64",
+    swift_version = "6.4.2",
+    swiftc = "@swift_toolchain_ubuntu24.04-aarch64//:usr/bin/swiftc",
+)

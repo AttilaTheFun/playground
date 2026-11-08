@@ -22,7 +22,7 @@ filegroup(
 # no files to read at run time.
 genrule(
     name = "template_sources",
-    srcs = ["//playground/web/playground_web_application:templates"],
+    srcs = ["//web/playground_web_application:templates"],
     outs = ["TemplateSources.swift"],
     cmd = """
 {

@@ -12,14 +12,14 @@ sh_test(
     name = "templates_compile_test",
     srcs = ["templates_compile_test.sh"],
     args = [
-        "$(rootpath //playground/tools/playground:dev_compile_server.py)",
-        "$(rootpath //playground/apple/playground_ios_application:playground_sdk)",
-        "$(rootpaths //playground/web/playground_web_application:templates)",
+        "$(rootpath //tools/playground:dev_compile_server.py)",
+        "$(rootpath //apple/playground_ios_application:playground_sdk)",
+        "$(rootpaths //web/playground_web_application:templates)",
     ],
     data = [
-        "//playground/apple/playground_ios_application:playground_sdk",
-        "//playground/tools/playground:dev_compile_server.py",
-        "//playground/web/playground_web_application:templates",
+        "//apple/playground_ios_application:playground_sdk",
+        "//tools/playground:dev_compile_server.py",
+        "//web/playground_web_application:templates",
     ],
     # The host toolchain is read from Bazel's output base (the repositories
     # the SDK was built with), outside the sandbox.

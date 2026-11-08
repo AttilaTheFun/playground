@@ -199,7 +199,7 @@ def android():
     # directory's.
     host = "darwin" if sys.platform == "darwin" else "linux"
     adb = sh(f"find -L \"$(bazel info output_base)/external\" -maxdepth 4 -path '*androidsdk_{host}*platform-tools*' -name adb -type f | head -1").stdout.strip()
-    apk = bazel_output("//playground/android/playground_android_application:playground_android_application_apk", "-c", "opt", suffix="_apk.apk")
+    apk = bazel_output("//android/playground_android_application:playground_android_application_apk", "-c", "opt", suffix="_apk.apk")
     # A test phone when ANDROID_SERIAL names one (with ADB_SERVER_SOCKET when
     # its adb server is not this Mac's), else this Mac's emulator.
     serial = os.environ.get("ANDROID_SERIAL")
@@ -432,7 +432,7 @@ def ios():
     flags = ["--ios_multi_cpus=sim_arm64", "-c", "opt"]
     if os.path.isdir(os.path.join(ROOT, "apple/playground_ios_application/embedded_toolchain/iphonesimulator/lib")):
         flags.append("--define=iso_playground_embedded=1")
-    ipa = bazel_output("//playground/apple/playground_ios_application", *flags, suffix=".ipa")
+    ipa = bazel_output("//apple/playground_ios_application", *flags, suffix=".ipa")
     # A simulator of oss's (the server is this Mac: simctl reaches it).
     udid, was_booted = oss_lease("ios")["OSS_UDID"], True
     sh(["xcrun", "simctl", "bootstatus", udid, "-b"])

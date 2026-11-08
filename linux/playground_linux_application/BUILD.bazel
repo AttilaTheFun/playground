@@ -11,21 +11,21 @@ package(default_visibility = ["//visibility:public"])
 # loader's window (:playground_wasm_loader). Built in a container on a Mac (isomer's
 # tools/linux/build.sh), run on a Linux desktop:
 #
-#   bazel run //playground/linux/playground_linux_application
+#   bazel run //linux/playground_linux_application
 #   linux/playground_linux_application/package.sh <out dir>   # one directory to copy to a machine
 
 swift_binary(
     name = "playground_linux_application_bin",
     srcs = [
-        "//playground/shared/app:srcs",
-        "//playground/shared/compiler:srcs",
-        "//playground/shared/desktop_host:srcs",
+        "//shared/app:srcs",
+        "//shared/compiler:srcs",
+        "//shared/desktop_host:srcs",
     ],
     copts = ["-parse-as-library"],
     data = [
         ":playground_wasm_loader",
-        "//playground/apple/playground_ios_application:playground_sdk",
-        "//playground/shared/compiler:toolchain",
+        "//apple/playground_ios_application:playground_sdk",
+        "//shared/compiler:toolchain",
     ],
     module_name = "PlaygroundLinux",
     target_compatible_with = ["@platforms//os:linux"],
@@ -40,7 +40,7 @@ swift_binary(
 # A build's window (LinuxWasmApp: WasmKit, SwiftGPU over OpenGL).
 swift_binary(
     name = "playground_wasm_loader",
-    srcs = ["//playground/shared/desktop_host:PlaygroundWasmLoader.swift"],
+    srcs = ["//shared/desktop_host:PlaygroundWasmLoader.swift"],
     copts = ["-parse-as-library"],
     module_name = "PlaygroundWasmLoader",
     target_compatible_with = ["@platforms//os:linux"],

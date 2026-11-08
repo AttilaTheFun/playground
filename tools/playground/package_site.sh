@@ -20,11 +20,11 @@
 #                     the one in the examples' Bazel output base)
 #
 # What it does, from examples/playground/:
-#   1. `bazel build -c opt` the whole site (//playground/web/splash_web_application:site:
+#   1. `bazel build -c opt` the whole site (//web/splash_web_application:site:
 #      the front page at the root, the Playground under playground/; -c opt
 #      because iOS Safari overflows its stack on an -Onone page) and the SDK
 #      the Playground's projects compile against
-#      (//playground/apple/playground_ios_application:playground_sdk).
+#      (//apple/playground_ios_application:playground_sdk).
 #   2. Unpacks the compiler and the linker from the given toolchain (gunzips
 #      them, joining their parts in the manifest's order) and its macro
 #      plugins (out of bundle.bin.gz, at the manifest's offsets).
@@ -60,8 +60,8 @@ trap 'chmod -R u+w "$WORK" 2>/dev/null; rm -rf "$WORK"' EXIT
 
 # 1. The site and the SDK.
 cd "$ROOT"
-SITE_TARGET=//playground/web/splash_web_application:site
-SDK_TARGET=//playground/apple/playground_ios_application:playground_sdk
+SITE_TARGET=//web/splash_web_application:site
+SDK_TARGET=//apple/playground_ios_application:playground_sdk
 bazel build -c opt "$SITE_TARGET" "$SDK_TARGET"
 EXEC_ROOT="$(bazel info -c opt execution_root)"
 output_of() { echo "$EXEC_ROOT/$(bazel cquery -c opt --output=files "$1" 2>/dev/null)"; }

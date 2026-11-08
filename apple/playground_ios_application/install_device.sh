@@ -21,8 +21,8 @@ DEV="${DEVICE:-}"
 [ -n "$DEV" ] || DEV="$(xcrun devicectl list devices 2>/dev/null | grep -E 'available \(paired\)|connected  ' | grep -oE '[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}' | head -1 || true)"
 [ -n "$DEV" ] || { echo "no connected iPhone (xcrun devicectl list devices)"; exit 1; }
 FLAGS=(--ios_multi_cpus=arm64 --define iso_playground_embedded=1 -c opt)
-bazel build //playground/apple/playground_ios_application "${FLAGS[@]}"
-IPA="$(bazel cquery --output=files //playground/apple/playground_ios_application "${FLAGS[@]}" 2>/dev/null | grep -E '\.ipa$' | head -1)"
+bazel build //apple/playground_ios_application "${FLAGS[@]}"
+IPA="$(bazel cquery --output=files //apple/playground_ios_application "${FLAGS[@]}" 2>/dev/null | grep -E '\.ipa$' | head -1)"
 xcrun devicectl device install app --device "$DEV" "$IPA"
 BUNDLE=com.LoganShire.Isomer
 xcrun devicectl device info apps --device "$DEV" 2>/dev/null | grep "$BUNDLE" || true

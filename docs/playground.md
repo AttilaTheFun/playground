@@ -131,7 +131,7 @@ over the chat, then either the run or a "Build Failed" sheet (wrapped,
 selectable diagnostics with a Copy button).
 
 ```sh
-bazel run //playground/apple/playground_ios_application:run   # from examples/ (or here)
+bazel run //apple/playground_ios_application:run   # from examples/ (or here)
 ```
 
 ## Projects and templates

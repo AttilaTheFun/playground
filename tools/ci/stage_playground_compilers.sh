@@ -3,7 +3,7 @@
 # Server's files (by SHA-256, as the Apple SDK archive is: `oss files add`
 # on its Mac, then the SHA-256 changed here) into the checkout's gitignored
 # folders, where the apps' BUILD files find them
-# (examples/playground/AGENTS.md, "The staged compilers"):
+# (AGENTS.md, "The staged compilers"):
 #
 #   ios-simulator  apple/playground_ios_application/embedded_toolchain/
 #                  {iphonesimulator,data}: the compiler linked into the
@@ -41,7 +41,7 @@ IOS_DEVICE_TOOLCHAIN=d864eaa5b9f259305bf19adc6a3584093c847df896624bb09bb7a9a1d84
 MACOS_TOOLCHAIN=7141924e3dfcfbacf63751f2327f256a2d35050e13979665c8612f297629a54a
 ANDROID_TOOLCHAIN=c8feabf8c6f379f4da714b9d1ed7915bfdc2cf9d02c90465bafb05278581f8b4
 WEB_TOOLCHAIN=70d0bc49c7cb2cbb9b8aa93370a6154b0343ab84d02bdfbc38e8e2292c3e8b38
-playground="$ROOT/examples/playground"
+playground="$ROOT"
 
 [ $# -gt 0 ] || { echo "usage: tools/ci/stage_playground_compilers.sh ios-simulator|ios-device|macos|android|web…" >&2; exit 2; }
 work="$(mktemp -d "${RUNNER_TEMP:-/tmp}/playground-compilers.XXXXXX")"

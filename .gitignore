@@ -1,0 +1,16 @@
+bazel-*
+.DS_Store
+.build/
+.swiftpm/
+__pycache__/
+*.pyc
+*.xcodeproj/
+.bazelrc.user
+/.ci/
+# The staged compilers (apple/playground_ios_application/build_embedded_toolchain.sh,
+# android/playground_android_application/stage_toolchain.sh, CI's
+# tools/ci/stage_playground_compilers.sh; about 1 GB, far too large for git).
+apple/playground_ios_application/embedded_toolchain/
+android/playground_android_application/toolchain/
+apple/playground_macos_application/staged_toolchain/
+web/playground_web_application/staged_toolchain/
