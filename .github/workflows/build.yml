@@ -46,10 +46,16 @@
 #   its v* tag): its commit checked to be main's and verified
 #   (tools/ci/verified.sh), its iPhone's and Mac's Alphas promoted to
 #   production by the server (nothing Apple rebuilt), Android's built for
-#   production and published, and the release given its assets: the proof,
-#   the Mac app's disk image, the Android app and the iPhone app for the
-#   simulator. pages.yml deploys its web site. A pre-release is never
+#   production and published, and the release given its assets: the signed
+#   builds (the iPhone's, the Mac's with its disk image, Android's, and
+#   builds.json, which Applications reads), the proof and the iPhone app for
+#   the simulator. pages.yml deploys its web site. A pre-release is never
 #   released so.
+# The signed builds of a proposal (its Alphas) and of a release (Production)
+# are attached to its GitHub release, as Applications lists only apps whose
+# builds are there (the private AttilaTheFun/applications'
+# docs/RELEASE_ASSETS.md: publish_from_ci.sh and promote_from_ci.sh
+# --download, then tools/ci/attach_release.sh). AdHoc builds never are.
 # No signing key, notary key or password here: the publishing jobs' OIDC
 # token says where their builds came from, and which commit's version they
 # are given (the private AttilaTheFun/applications' docs/CI.md).
@@ -434,7 +440,9 @@ jobs:
   # The checked builds published (tools/ci/publish_from_ci.sh: the server
   # signs the Apple ones and notarizes the Mac's), and for alpha the draft
   # release made with the web site (tools/ci/draft_release.sh), named for
-  # the version alpha was given.
+  # the version alpha was given, and the signed builds attached to it
+  # (--download, tools/ci/attach_release.sh: Playground-<version>-ios.ipa,
+  # -macos.zip, -android.apk and builds.json, what Applications lists).
   publish:
     needs: [alpha, adhoc, icons]
     if: ${{ always() && needs.icons.result == 'success' && (needs.alpha.result == 'success' || needs.adhoc.result == 'success') }}
@@ -458,26 +466,36 @@ jobs:
       # its event.
       - name: Notes
         run: git log -1 --format=%B > "$RUNNER_TEMP/notes.md"
+      # An Alpha's signed builds downloaded for its release; AdHoc builds
+      # are never attached.
       - name: Publish
         env:
           APPLICATIONS_CI_CODE: ${{ secrets.APPLICATIONS_CI_CODE }}
-        run: tools/ci/publish_from_ci.sh --notes-file "$RUNNER_TEMP/notes.md" .ci/packages/*.zip .ci/packages/*.ipa .ci/packages/*.apk
+          DOWNLOAD: ${{ needs.alpha.result == 'success' && format('{0}/assets', runner.temp) || '' }}
+        run: >-
+          tools/ci/publish_from_ci.sh --notes-file "$RUNNER_TEMP/notes.md" ${DOWNLOAD:+--download "$DOWNLOAD"}
+          .ci/packages/*.zip .ci/packages/*.ipa .ci/packages/*.apk
       - name: The draft release
         if: needs.alpha.result == 'success'
         env:
           GH_TOKEN: ${{ github.token }}
           KIND: ${{ inputs.run }}
           VERSION: ${{ needs.alpha.outputs.version }}
-        run: tools/ci/draft_release.sh "$VERSION" "$KIND" .ci/packages/playground-site.tar.gz
+        run: |
+          tools/ci/draft_release.sh "$VERSION" "$KIND" .ci/packages/playground-site.tar.gz
+          tools/ci/attach_release.sh "v$VERSION" "$RUNNER_TEMP/assets"
 
   # A release: when the owner publishes a GitHub release (its v0.47.N tag on
   # a main commit, whose proof is in). Nothing Apple is rebuilt: the
   # iPhone's and the Mac's Alphas main's CI published of that commit (the
   # builds the owner tested) are promoted by Applications Server, stamped
   # Production and signed again (tools/ci/promote_from_ci.sh). Android's is
-  # built for production and published, the server signing none. The
-  # release then carries its proof, the Mac app's disk image, the Android
-  # app and the iPhone app for the simulator (tools/ci/release_assets.sh).
+  # built for production and published, the server signing none. The signed
+  # builds, downloaded as each is promoted or published (--download:
+  # Playground-<version>-ios.ipa, -macos.zip, -macos.dmg, -android.apk and
+  # builds.json), replace the Alphas on the release
+  # (tools/ci/attach_release.sh); then its proof and the iPhone app for the
+  # simulator (tools/ci/release_extras.sh).
   release:
     if: github.event_name == 'release' && !github.event.release.prerelease
     runs-on: [self-hosted, playground-jit]
@@ -507,7 +525,7 @@ jobs:
       - name: Its proof
         env:
           GH_TOKEN: ${{ github.token }}
-        run: tools/ci/release_assets.sh proof "$GITHUB_REF_NAME" .ci/release
+        run: tools/ci/release_extras.sh proof "$GITHUB_REF_NAME" .ci/release
       # Untrusted text reaches the shell through env, never ${{ }} in run.
       - name: Notes
         env:
@@ -516,7 +534,7 @@ jobs:
       - name: The iPhone's and the Mac's, promoted
         env:
           APPLICATIONS_CI_CODE: ${{ secrets.APPLICATIONS_CI_CODE }}
-        run: tools/ci/promote_from_ci.sh --notes-file "$RUNNER_TEMP/notes.md" --dmg-dir .ci/release
+        run: tools/ci/promote_from_ci.sh --notes-file "$RUNNER_TEMP/notes.md" --download "$RUNNER_TEMP/assets"
       # Android's and the simulator's builds: the version main's Alpha of
       # the commit was (the server's answer for the token's commit).
       - name: Version
@@ -534,7 +552,7 @@ jobs:
       - name: Android's, published
         env:
           APPLICATIONS_CI_CODE: ${{ secrets.APPLICATIONS_CI_CODE }}
-        run: tools/ci/publish_from_ci.sh --notes-file "$RUNNER_TEMP/notes.md" .ci/android/*.apk
+        run: tools/ci/publish_from_ci.sh --notes-file "$RUNNER_TEMP/notes.md" --download "$RUNNER_TEMP/assets" .ci/android/*.apk
       # The simulator's app with the compiler linked in, as the proof's
       # (--define=iso_playground_embedded=1): without it the app builds but
       # cannot compile a project.
@@ -545,7 +563,12 @@ jobs:
           tools/ci/container_build.sh package .ci/simulator --compilation_mode=opt --ios_multi_cpus=sim_arm64
           --define=iso_playground_embedded=1
           //apple/playground_ios_application:playground_ios_sim_application
-      - name: The release's assets
+      # The signed builds, Production now, in place of the Alphas.
+      - name: The signed builds, attached
         env:
           GH_TOKEN: ${{ github.token }}
-        run: tools/ci/release_assets.sh upload "$GITHUB_REF_NAME" .ci/release .ci/android .ci/simulator
+        run: tools/ci/attach_release.sh "$GITHUB_REF_NAME" "$RUNNER_TEMP/assets"
+      - name: The proof and the simulator's app, attached
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: tools/ci/release_extras.sh upload "$GITHUB_REF_NAME" .ci/release .ci/simulator
