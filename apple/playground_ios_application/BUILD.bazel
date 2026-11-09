@@ -61,6 +61,8 @@ assemble_directory(
         "//web/playground_web_application:swift_ffi_runtime_js": "swift_ffi_runtime.js",
         "//web/playground_web_application:app_bridge_js_files": "app_bridge.js",
         "@isomer//wasm/libraries/swift_ui:runtime/react_renderer.js": "runtime/react_renderer.js",
+        # The renderer's styling, a module it imports (isomer 0.48).
+        "@isomer//wasm/libraries/swift_ui:runtime/render_style.js": "runtime/render_style.js",
         "@isomer//wasm/libraries/swift_ui:runtime/flat_tree.js": "runtime/flat_tree.js",
         # The renderer's symbol table: a module it imports, so the page is
         # blank without it.

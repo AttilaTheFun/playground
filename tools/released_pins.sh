@@ -1,7 +1,7 @@
 #!/bin/sh
 # Whether every dependency is pinned to a released version: a SwiftPM
 # package by version (exact:, from:, a range), by a release's tag
-# (`revision: "v0.46.1"`: isomer, whose dependencies SwiftPM allows only
+# (`revision: "v0.48.1"`: isomer, whose dependencies SwiftPM allows only
 # beneath a revision), or by a release tag's commit where the tag isn't a
 # version (`revision:` with a `// tag: <tag>` comment), not another
 # revision, a branch or a path outside this repository; a Bazel module from
