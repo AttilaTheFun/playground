@@ -487,6 +487,9 @@ struct SettingsSheet: View {
     @State private var hasKey = PlaygroundHost.service?.hasKey() ?? false
     @State private var model = WebSettings.model
     @State private var signInError: String?
+    /// What runs a build in the app (a host with the "engines" capability:
+    /// the iPhone's AppleRun.Engine reads it).
+    @AppStorage("playground.engine") private var engine = "wasmKit"
 
     var body: some View {
         NavigationStack {
@@ -536,6 +539,19 @@ struct SettingsSheet: View {
                         Text("Model")
                     } footer: {
                         Text("Any OpenRouter model id that supports tools, e.g. anthropic/claude-sonnet-5, openai/gpt-5.2, z-ai/glm-5.")
+                    }
+                }
+                if hasProjects, PlaygroundHost.service?.supports("engines") == true {
+                    Section {
+                        Picker("Engine", selection: $engine) {
+                            Text("WasmKit (interpreter)").tag("wasmKit")
+                            Text("Web view (JIT)").tag("webView")
+                        }
+                        .accessibilityIdentifier("run-engine")
+                    } header: {
+                        Text("Run")
+                    } footer: {
+                        Text("What runs a build in the app; the app draws it either way. The web view runs it with WebKit's JIT, out of sight. Run in Safari draws it in the browser instead. The next run takes the change.")
                     }
                 }
                 if hasProjects {

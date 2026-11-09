@@ -11,6 +11,7 @@ import SwiftUI
 import ApplePlatformServices
 import IsomerSwiftUI
 import IsomerTree
+import IsomerWasmKitRuntime
 import IsomerWasmView
 
 @MainActor @Observable
@@ -29,6 +30,26 @@ final class AppleRun {
     }
 
     private(set) var current: Current?
+    /// The run's engine's timings (TimedEngine), shown over the run.
+    private(set) var timings: EngineTimings?
+
+    /// What runs a build: WasmKit's interpreter, or (on the iPhone) WebKit's
+    /// JavaScript engine in a web view kept out of sight (WebViewEngine).
+    /// Either way the app draws it. Settings' "Run" picker keeps it in
+    /// UserDefaults (playground.engine).
+    enum Engine: String {
+        case wasmKit, webView
+
+        static var chosen: Engine {
+            #if os(iOS)
+            return Engine(rawValue: UserDefaults.standard.string(forKey: "playground.engine") ?? "") ?? .wasmKit
+            #else
+            return .wasmKit
+            #endif
+        }
+
+        var title: String { self == .webView ? "Web view (JIT)" : "WasmKit" }
+    }
     @ObservationIgnored private(set) var model: WasmViewModel?
     @ObservationIgnored private var log: [String] = []
     @ObservationIgnored private var setVariables: [String] = []
@@ -39,13 +60,34 @@ final class AppleRun {
             setenv(key, value, 1)
             setVariables.append(key)
         }
-        let model = WasmViewModel(runtime: { WasmRuntimeRegistry.make(for: $0) })
         let home = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("runs", isDirectory: true)
             .appendingPathComponent(run.name, isDirectory: true)
         try? FileManager.default.createDirectory(at: home, withIntermediateDirectories: true)
+        let bundleIdentifier = "dev.isomer.playground.run." + run.name
+        let engine = Engine.chosen
+        timings = nil
+        // The engine, timed (TimedEngine) whichever it is. WasmKit's gets the
+        // run's home here: WasmViewModel gives it one only when it is the
+        // engine itself, not wrapped.
+        let model = WasmViewModel(runtime: { [weak self] _ in
+            let inner: any WasmRuntime
+            #if os(iOS)
+            if engine == .webView {
+                inner = WebViewEngine()
+            } else {
+                inner = Self.wasmKit(home: home.path, bundleIdentifier: bundleIdentifier)
+            }
+            #else
+            inner = Self.wasmKit(home: home.path, bundleIdentifier: bundleIdentifier)
+            #endif
+            return TimedEngine(inner, engine: engine.title) { timings in
+                self?.timings = timings
+                NSLog("[playground] timings: %@", timings.summary)
+            }
+        })
         model.guestHomeDirectory = home.path
-        model.guestBundleIdentifier = "dev.isomer.playground.run." + run.name
+        model.guestBundleIdentifier = bundleIdentifier
         log = []
         model.onLog = { [weak self] line in
             NSLog("[playground] guest: %@", line)
@@ -55,7 +97,15 @@ final class AppleRun {
         current = run
     }
 
+    private static func wasmKit(home: String, bundleIdentifier: String) -> WasmKitRuntime {
+        let runtime = WasmKitRuntime()
+        runtime.homeDirectory = home
+        runtime.bundleIdentifier = bundleIdentifier
+        return runtime
+    }
+
     func stop() {
+        (model?.engineRuntime as? TimedEngine)?.close()
         model?.forceShutdown()
         model = nil
         current = nil
@@ -218,6 +268,18 @@ struct AppleRunSurface: View {
                     AppleRun.shared.append("[status] " + status)
                 }
                 .id(current.id)
+                .overlay(alignment: .bottom) {
+                    if let timings = run.timings {
+                        Text(timings.summary)
+                            .font(.caption2.monospacedDigit())
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(.regularMaterial, in: Capsule())
+                            .padding(.bottom, 4)
+                            .allowsHitTesting(false)
+                            .accessibilityIdentifier("run-timings")
+                    }
+                }
             } else {
                 Color.clear
             }

@@ -36,6 +36,8 @@ swift_library(
         "//apple/platform_services_host",
         "@isomer//apple/libraries/swift_ui:isomer",
         "@isomer//apple/libraries/wasm_view",
+        # AppleRun makes the WasmKit engine itself (TimedEngine wraps it).
+        "@isomer//shared/wasm_host:wasmkit_runtime",
         "@isomer//shared/platform_services",
         "@isomer//swift_ffi/runtime/swift_wasm_host",
         "@swiftpkg_agent_ui//:AgentUI",

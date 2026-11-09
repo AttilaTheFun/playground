@@ -22,7 +22,12 @@ final class AppleHost: PlaygroundHostService, @unchecked Sendable {
     private var lastBuild: Data?
 
     func capabilities() -> String {
+        #if os(iOS)
+        // "engines": a build runs on WasmKit or in a web view (AppleRun.Engine).
+        "projects,sign-in,engines"
+        #else
         "projects,sign-in"
+        #endif
     }
 
     // MARK: Compiling
