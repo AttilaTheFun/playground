@@ -1,5 +1,6 @@
 #!/bin/bash
-# Phase B for Android: LLVM + clang + lld cross-compiled for Android arm64 as
+# Phase B for Android: LLVM + clang + lld cross-compiled for Android (arm64, or
+# x86_64 with ISO_ANDROID_ARCH) as
 # STATIC LIBRARIES with the NDK (the iOS phase B's Android twin; only the
 # WebAssembly backend, no tools — the Playground app links the libraries and
 # calls the entry points in-process). The NDK is the one Bazel fetched for the
@@ -8,19 +9,28 @@ set -euo pipefail
 cd "$(dirname "$0")"
 NINJA=~/Developer/swiftwasm-source/ninja/ninja
 [ -x "$NINJA" ] || NINJA=$(command -v ninja)
-NDK="${ISO_NDK:-$(grep -l "Pkg.Revision = 30\." ~/Library/Caches/bazel/_bazel_*/*/external/hermetic_android_toolchains++android+androidndk_darwin/source.properties 2>/dev/null | head -1 | xargs dirname 2>/dev/null)}"
+# The NDK Bazel fetched (a Mac's, else a Linux machine's), unless ISO_NDK.
+NDK="${ISO_NDK:-$(grep -l "Pkg.Revision = 30\." ~/Library/Caches/bazel/_bazel_*/*/external/hermetic_android_toolchains++android+androidndk_darwin/source.properties ~/.cache/bazel/_bazel_*/*/external/hermetic_android_toolchains++android+androidndk_linux/source.properties 2>/dev/null | head -1 | xargs dirname 2>/dev/null)}"
 [ -d "$NDK/build/cmake" ] || { echo "no NDK at $NDK (set ISO_NDK)" >&2; exit 1; }
 API="${ISO_ANDROID_API:-28}"
-SUFFIX="android"
-mkdir -p build/$SUFFIX-llvm
-cmake -S llvm-project/llvm -B build/$SUFFIX-llvm -G Ninja \
+# The Android host's architecture: aarch64 (the default, the phones') or
+# x86_64 (emulators on x86_64 machines: GitHub's runners). Each builds into
+# folders of its own, aarch64's unsuffixed as before.
+ARCH="${ISO_ANDROID_ARCH:-aarch64}"
+case "$ARCH" in
+    aarch64) ABI=arm64-v8a; SUFFIX="" ;;
+    x86_64) ABI=x86_64; SUFFIX="-x86_64" ;;
+    *) echo "ISO_ANDROID_ARCH is aarch64 or x86_64, not $ARCH" >&2; exit 1 ;;
+esac
+mkdir -p build/android$SUFFIX-llvm
+cmake -S llvm-project/llvm -B build/android$SUFFIX-llvm -G Ninja \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_MAKE_PROGRAM="$NINJA" \
     -DCMAKE_TOOLCHAIN_FILE="$NDK/build/cmake/android.toolchain.cmake" \
-    -DANDROID_ABI=arm64-v8a \
+    -DANDROID_ABI=$ABI \
     -DANDROID_PLATFORM=android-$API \
     -DANDROID_STL=c++_static \
-    -DLLVM_HOST_TRIPLE="aarch64-linux-android$API" \
+    -DLLVM_HOST_TRIPLE="$ARCH-linux-android$API" \
     -DLLVM_DEFAULT_TARGET_TRIPLE=wasm32-unknown-wasip1 \
     -DLLVM_TARGETS_TO_BUILD=WebAssembly \
     -DLLVM_ENABLE_PROJECTS="clang;lld" \
@@ -42,7 +52,7 @@ cmake -S llvm-project/llvm -B build/$SUFFIX-llvm -G Ninja \
     -DCLANG_TOOL_C_INDEX_TEST_BUILD=OFF \
     -DCLANG_ENABLE_ARCMT=OFF \
     -DCLANG_ENABLE_STATIC_ANALYZER=OFF
-"$NINJA" -C build/$SUFFIX-llvm -k 0 || true
-"$NINJA" -C build/$SUFFIX-llvm lldWasm clangFrontend clangCodeGen
+"$NINJA" -C build/android$SUFFIX-llvm -k 0 || true
+"$NINJA" -C build/android$SUFFIX-llvm lldWasm clangFrontend clangCodeGen
 echo "PHASE B OK"
-ls build/$SUFFIX-llvm/lib/*.a | head -5
+ls build/android$SUFFIX-llvm/lib/*.a | head -5

@@ -2,7 +2,8 @@
 # Stages the Android Playground's toolchain, gitignored under toolchain/ and
 # packaged by the app when present:
 #
-#   toolchain/native/   swift-frontend and wasm-ld built for Android arm64 by
+#   toolchain/native/   swift-frontend and wasm-ld built for Android arm64
+#                       (toolchain/native-x86_64/ for x86_64, ISO_ANDROID_ARCH) by
 #                       the ~/Developer/ios-toolchain campaign's Android phases
 #                       (tools/playground_toolchain/build_phase_{b,c1,c2}_android_*.sh),
 #                       with the compiler's own Swift libraries, the Swift
@@ -19,8 +20,17 @@ set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(cd "$HERE/../.." && pwd)"
 TC="${ISO_IOS_TOOLCHAIN:-$HOME/Developer/ios-toolchain}"
-NDK="${ISO_NDK:-$(grep -l "Pkg.Revision = 30\." ~/Library/Caches/bazel/_bazel_*/*/external/hermetic_android_toolchains++android+androidndk_darwin/source.properties 2>/dev/null | head -1 | xargs dirname 2>/dev/null)}"
-STRIP="$NDK/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-strip"
+NDK="${ISO_NDK:-$(grep -l "Pkg.Revision = 30\." ~/Library/Caches/bazel/_bazel_*/*/external/hermetic_android_toolchains++android+androidndk_darwin/source.properties ~/.cache/bazel/_bazel_*/*/external/hermetic_android_toolchains++android+androidndk_linux/source.properties 2>/dev/null | head -1 | xargs dirname 2>/dev/null)}"
+PREBUILT="$NDK/toolchains/llvm/prebuilt/$([ "$(uname -s)" = Darwin ] && echo darwin || echo linux)-x86_64"
+STRIP="$PREBUILT/bin/llvm-strip"
+# The phones' arm64, or x86_64 for emulators on x86_64 machines (its phases
+# built with the same ISO_ANDROID_ARCH): each staged into a folder of its own.
+ARCH="${ISO_ANDROID_ARCH:-aarch64}"
+case "$ARCH" in
+    aarch64) SUFFIX="" ;;
+    x86_64) SUFFIX="-x86_64" ;;
+    *) echo "ISO_ANDROID_ARCH is aarch64 or x86_64, not $ARCH" >&2; exit 1 ;;
+esac
 SLICE=""
 while [ $# -gt 0 ]; do
     case "$1" in
@@ -28,7 +38,7 @@ while [ $# -gt 0 ]; do
         *) echo "unknown argument $1" >&2; exit 2;;
     esac
 done
-[ -x "$TC/build/android-swift/bin/swift-frontend" ] || { echo "run the Android toolchain phases first ($TC/build/android-swift/bin/swift-frontend missing)" >&2; exit 1; }
+[ -x "$TC/build/android$SUFFIX-swift/bin/swift-frontend" ] || { echo "run the Android toolchain phases first ($TC/build/android$SUFFIX-swift/bin/swift-frontend missing)" >&2; exit 1; }
 if [ -z "$SLICE" ]; then
     DATA="$ROOT/apple/playground_ios_application/embedded_toolchain/data"
     SLICE="$(mktemp -d)/slice"
@@ -37,25 +47,27 @@ if [ -z "$SLICE" ]; then
     ln -s "$DATA/swift_static" "$SLICE/swift.xctoolchain/usr/lib/swift_static"
 fi
 OUT="$HERE/toolchain"
-rm -rf "$OUT"; mkdir -p "$OUT/native" "$OUT/tree"
+NATIVE="$OUT/native$SUFFIX"
+# This architecture's natives afresh; the other's stay.
+rm -rf "$NATIVE" "$OUT/tree" "$OUT/toolchain.zip"; mkdir -p "$NATIVE" "$OUT/tree"
 
 # The compiler and linker, stripped, plus every shared library they load.
-"$STRIP" -o "$OUT/native/libswift-frontend.so" "$TC/build/android-swift/bin/swift-frontend"
-"$STRIP" -o "$OUT/native/libwasm-ld.so" "$TC/build/android-llvm/bin/lld"
-for lib in "$TC"/build/android-swift/lib/swift/host/compiler/*.so; do
-    "$STRIP" -o "$OUT/native/$(basename "$lib")" "$lib"
+"$STRIP" -o "$NATIVE/libswift-frontend.so" "$TC/build/android$SUFFIX-swift/bin/swift-frontend"
+"$STRIP" -o "$NATIVE/libwasm-ld.so" "$TC/build/android$SUFFIX-llvm/bin/lld"
+for lib in "$TC"/build/android$SUFFIX-swift/lib/swift/host/compiler/*.so; do
+    "$STRIP" -o "$NATIVE/$(basename "$lib")" "$lib"
 done
 # Macros: the in-process plugin server, the swift-syntax libraries it and the
 # plugins load (lib/swift/host/*.so, apart from the compiler's own _Compiler
 # copies above), and the prebuilt plugins (ObservationMacros, SwiftMacros).
 # The frontend is told where they are (PlaygroundServices.kt's macroArguments).
-for lib in "$TC"/build/android-swift/lib/swift/host/*.so "$TC"/build/android-swift/lib/swift/host/plugins/*.so; do
-    "$STRIP" -o "$OUT/native/$(basename "$lib")" "$lib"
+for lib in "$TC"/build/android$SUFFIX-swift/lib/swift/host/*.so "$TC"/build/android$SUFFIX-swift/lib/swift/host/plugins/*.so; do
+    "$STRIP" -o "$NATIVE/$(basename "$lib")" "$lib"
 done
 for lib in libswiftCore libswift_Concurrency libswift_Builtin_float libswift_math libswift_StringProcessing libswift_RegexParser libdispatch libswiftAndroid libBlocksRuntime; do
-    cp "$TC/android-swift-resources/android/$lib.so" "$OUT/native/"
+    cp "$TC/android-swift-resources$SUFFIX/android/$lib.so" "$NATIVE/"
 done
-cp "$NDK/toolchains/llvm/prebuilt/darwin-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_shared.so" "$OUT/native/"
+cp "$PREBUILT/sysroot/usr/lib/$ARCH-linux-android/libc++_shared.so" "$NATIVE/"
 
 # The SDK, the browser bundle's way (without the bundle blob itself).
 cd "$ROOT"   # the workspace, whose bazel-out the output paths are under
@@ -66,5 +78,5 @@ STAGE="$(mktemp -d)/stage"
 cp -R "$STAGE/resource-dir" "$STAGE/sysroot" "$STAGE/sdk" "$STAGE/manifest.json" "$OUT/tree/"
 (cd "$OUT/tree" && zip -q -r -X ../toolchain.zip .)
 rm -rf "$OUT/tree"
-du -sh "$OUT/native" "$OUT/toolchain.zip"
+du -sh "$NATIVE" "$OUT/toolchain.zip"
 echo "staged"

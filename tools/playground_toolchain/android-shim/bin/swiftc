@@ -9,7 +9,8 @@
 # bundle's own link points at a Linux NDK).
 HERE="$(cd "$(dirname "$0")/../.." && pwd)"
 SWIFT_RELEASE=6.4.2
-NDK="${ISO_NDK:-$(grep -l "Pkg.Revision = 30\." ~/Library/Caches/bazel/_bazel_*/*/external/hermetic_android_toolchains++android+androidndk_darwin/source.properties 2>/dev/null | head -1 | xargs dirname 2>/dev/null)}"
+# The NDK Bazel fetched (a Mac's, else a Linux machine's), unless ISO_NDK.
+NDK="${ISO_NDK:-$(grep -l "Pkg.Revision = 30\." ~/Library/Caches/bazel/_bazel_*/*/external/hermetic_android_toolchains++android+androidndk_darwin/source.properties ~/.cache/bazel/_bazel_*/*/external/hermetic_android_toolchains++android+androidndk_linux/source.properties 2>/dev/null | head -1 | xargs dirname 2>/dev/null)}"
 BASE_TC="${ISO_BASE_TC:-}"
 if [ -z "$BASE_TC" ]; then
   for version in ~/Library/Caches/bazel/_bazel_*/*/external/rules_swift++swift+swift_toolchain_xcode/.swift-version; do
@@ -27,6 +28,6 @@ for arg in "$@"; do
 done
 exec "$BASE_TC/swiftc" \
     -sdk "$HERE/android-sysroot" \
-    -resource-dir "$HERE/android-swift-resources" \
+    -resource-dir "$HERE/android-swift-resources$([ "${ISO_ANDROID_ARCH:-aarch64}" = x86_64 ] && echo -x86_64)" \
     -tools-directory "$NDK/toolchains/llvm/prebuilt/darwin-x86_64/bin" \
     "${args[@]}"

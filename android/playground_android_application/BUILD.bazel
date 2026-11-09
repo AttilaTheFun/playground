@@ -70,11 +70,16 @@ genrule(
 )
 
 # The compiler, the linker and their libraries, as prebuilt native libraries
-# the APK carries under lib/arm64-v8a (extracted at install: the app runs
-# libswift-frontend.so and libwasm-ld.so from its native library directory).
+# the APK carries under lib/<its ABI> (extracted at install: the app runs
+# libswift-frontend.so and libwasm-ld.so from its native library directory):
+# arm64's (toolchain/native), or x86_64's for emulators on x86_64 machines
+# (toolchain/native-x86_64; stage_toolchain.sh with ISO_ANDROID_ARCH=x86_64).
 cc_library(
     name = "native_toolchain",
-    srcs = glob(["toolchain/native/*.so"], allow_empty = True),
+    srcs = select({
+        "@platforms//cpu:x86_64": glob(["toolchain/native-x86_64/*.so"], allow_empty = True),
+        "//conditions:default": glob(["toolchain/native/*.so"], allow_empty = True),
+    }),
     tags = ["manual"],
     target_compatible_with = ["@platforms//os:android"],
 )
