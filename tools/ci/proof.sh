@@ -1,19 +1,22 @@
 #!/bin/bash
 # The Playground's proof, from CI: its app on the tier-1 platforms
 # (PLATFORMS below), each with its one renderer (SwiftUI on iOS and the Mac,
-# Compose on Android, React on the web), pictured on machines leased from OS
-# Server (tools/proof/proof.py), each picture compared with the base's, and
-# the `proof` artifact Reviews reads made of them
-# (tools/ci/proof_compare.swift). Its screens: the projects, a project open,
-# and 2048 and the Pokédex built on the device and running. As isomer's
-# tools/ci/proof.sh, where the Playground was proven until 0.47, for the
-# Playground alone.
+# Compose on Android, React on the web), pictured (tools/proof/proof.py),
+# and the proof Reviews reads made of them in its format 2
+# (tools/ci/proof_write.swift; the private AttilaTheFun/reviews'
+# docs/PROOF_FORMAT.md): every picture an item under an id stable from
+# release to release (ios/phone/<screen>, macos/window/<screen>,
+# android/phone/<screen>, web/desktop/<screen>). Its screens: the projects,
+# a project open, and 2048 and the Pokédex built on the device and running.
+# Nothing is compared across versions here: Reviews compares a release's
+# proof with the release before it. As isomer's tools/ci/proof.sh, where
+# the Playground was proven until 0.47, for the Playground alone.
 #
 #   tools/ci/proof.sh --proof <dir> [--kind quick|full]
 #
 # Or in stages, as a public repository's CI runs it: built in CI's own
 # Linux container, pictured on GitHub's own machines (free for a public
-# repository), then compared (.github/workflows/build.yml's proof jobs):
+# repository), then written (.github/workflows/build.yml's proof jobs):
 #
 #   --stage build --apps <dir> --review <dir>
 #       (CI's container) the app built for every platform into
@@ -31,44 +34,17 @@
 #       <review>
 #   --stage compare --parts <dir> --proof <dir>
 #       (CI's container) the stages' <review> folders, as subfolders of
-#       <parts>, compared with the baseline into the proof
+#       <parts>, written into the proof
 #
 # Run only by hand (the Build workflow's workflow_dispatch), to propose a
 # release or, after the fact, to bisect a regression. full and quick take
-# the same screens (the Playground's are few); a quick proof's runs are
-# marked so, and never stand for a release.
+# the same screens (the Playground's are few); a quick proof's review
+# folders are marked so, and never stand for a release.
 #
-# The baseline is the base's pictures, never the change's own:
-#   a commit on main (run on main, or on a branch pushed at a commit of
-#     main's, to prove it after the fact): the previous release's (the
-#     newest release tag before it), else the newest commit before it with
-#     one;
-#   a branch's own commits: its base branch's proof, of the newest commit
-#     there at or before the one the branch parted from;
-#   a release: the previous release's run (else its commit's on main);
-#   PROOF_BASELINE_RUN: a run of this workflow whose proof to compare with
-#     instead (how a second run of one commit shows it held still).
-# Each is a release's proof.tar.gz asset (tools/ci/release_extras.sh) when
-# the base is a release that has one, else the `proof` artifact of a run of
-# this workflow (kept 90 days), fetched with gh. Until this repository has
-# a proof of its own, the last isomer release that proved the Playground
-# (ISOMER_BASELINE below) is the baseline: its proof.tar.gz holds the same
-# screens under the same names. The pictures aren't kept in the repository:
-# every visible change would rewrite some. A screen the baseline has no
-# picture of is new, and changed.
-#
-# The proof, in <dir>:
-#   screens/<name>.png  every picture: <platform>-playground-<screen>
-#                       (ios-playground-projects, web-playground-pokedex)
-#   before/<name>.png   the baseline's picture of each that changed
-#   diffs/<name>.png    each that changed, its changed pixels red
-#   proof.json          {"commit", "ref", "kind", "run", "base": {"ref", "commit"},
-#                        "screens": [{"name", "changed", "changedPixels"}]}
-# A pixel counts as changed by more than 24 in a channel, and never in a
-# region tools/ci/proof_ignore.txt names (what a platform draws differently
-# from run to run however it's held, with why). The script fails when the
-# app doesn't build or a picture doesn't come back; pictures that changed
-# are for review, not failures.
+# The proof, in <dir>: proof.json (format 2) and its pictures,
+# screens/<id>.png; the `proof` artifact of the run, and, zipped, the
+# proof.zip a proposal's draft carries (alpha, tools/ci/proof_zip.sh). The
+# script fails when the app doesn't build or a picture doesn't come back.
 #
 # The builds: proof.py's, in CI's own Linux container (the playground-jit
 # runners: the Apple apps with rules_applecross, the SDK archive from OS
@@ -80,15 +56,14 @@
 # browser's, staged from OS Server's files
 # (tools/ci/stage_playground_compilers.sh).
 #
-#   PROOF_REF           the ref the proof is of (default: GITHUB_REF, else the branch)
 #   PROOF_PYTHON        the python3 that runs proof.py, with Pillow, which crops
 #                       the desktops' pictures (default: the PATH's python3)
-#   PROOF_BASELINE_RUN  a run whose proof is the baseline (above)
+#   PROOF_VERSION       the version the proof is of (default: the app's
+#                       committed MAJOR.MINOR.0)
 #   PROOF_MAC           vm: the Mac's pictures on a macOS VM of their own, as
 #                       before 2026-11-03 (default: a slot of OS Server's primary)
 #   OSS_FILES_HOST      the name OS Server's files are reached by (default: the
 #                       first of OSS_SERVERS, else this Mac's tailnet name)
-#   GH_TOKEN            gh's token (the job's)
 #
 # Every lease is released however the script ends: proof.py's own as it
 # finishes, and on a cancel (the job's `exec` brings the runner's signal
@@ -148,11 +123,7 @@ stages() { case " $* " in *" $stage "*) return 0 ;; esac; return 1; }
 
 cd "$ROOT"
 commit="$(git rev-parse HEAD)"
-ref="${PROOF_REF:-${GITHUB_REF:-refs/heads/$(git branch --show-current)}}"
 repo="${GITHUB_REPOSITORY:-AttilaTheFun/playground}"
-# The last isomer release whose proof pictured the Playground: the baseline
-# until this repository has a proof of its own (above).
-ISOMER_BASELINE="AttilaTheFun/isomer v0.46.1"
 work="$(mktemp -d "${RUNNER_TEMP:-/tmp}/playground-proof.XXXXXX")"
 started=$SECONDS
 phase() { echo "proof.sh: $1 ($((SECONDS - started)) s in)"; }
@@ -195,35 +166,20 @@ trap 'exit 143' TERM INT
 
 # --- The steps the stages share or have alone (run below as the stage says)
 
-# Every picture of the review folders under the given roots, named for its
-# platform, app and screen (review-ios-playground/game2048.png is
-# ios-playground-game2048), then compared with the baseline into the proof.
+# The review folders under the given roots, each platform's checked for
+# pictures, written into the proof (format 2).
 compare() {
-    local root folder cell picture platform
-    mkdir -p "$work/pictures"
-    for root in "$@"; do
-        for folder in "$root"/review-*; do
-            [ -d "$folder" ] || continue
-            cell="$(basename "$folder")"
-            for picture in "$folder"/*.png; do
-                [ -e "$picture" ] || continue
-                case "$picture" in *.reference.png | *.diff.png) continue ;; esac
-                cp "$picture" "$work/pictures/${cell#review-}-$(basename "$picture")"
-            done
-        done
-    done
+    local platform
     for platform in $PLATFORMS; do
-        if ! ls "$work/pictures/$platform-playground-"*.png > /dev/null 2>&1; then
+        if [ -z "$(find "$@" -maxdepth 3 -path "*/review-$platform-playground/*.png" -print -quit 2> /dev/null)" ]; then
             echo "::error::no picture of $platform's Playground"
             status=1
         fi
     done
-    "$work/proof_compare" "$work/pictures" "$baseline" "$proof" --commit "$commit" --ref "$ref" --kind "$kind" \
-        ${GITHUB_RUN_ID:+--run "$GITHUB_RUN_ID"} ${base_ref:+--base-ref "$base_ref"} ${base_commit:+--base-commit "$base_commit"} \
-        --ignore "$ROOT/tools/ci/proof_ignore.txt" > "$work/summary.md"
-    cat "$work/summary.md"
+    "$work/proof_write" "$proof" --app Playground --version "$version" --repository "$repo" --commit "$commit" \
+        ${GITHUB_RUN_ID:+--run "$GITHUB_RUN_ID"} "$@" | tee "$work/summary.md"
     [ -z "${GITHUB_STEP_SUMMARY:-}" ] || cat "$work/summary.md" >> "$GITHUB_STEP_SUMMARY"
-    phase "done: $(ls "$proof/screens" | wc -l | tr -d ' ') pictures"
+    phase "done: $(find "$proof/screens" -name '*.png' 2> /dev/null | wc -l | tr -d ' ') pictures"
 }
 
 # --stage build and prebuild: the app built for every platform, for the
@@ -328,9 +284,8 @@ elif [ -n "$inside" ]; then
     [ -n "$host" ] || { echo "::error::no host for OS Server's files: set OSS_FILES_HOST (or OSS_SERVERS)"; exit 1; }
     echo "::group::The container's tools"
     root_do() { if [ "$(id -u)" = 0 ]; then "$@"; else sudo "$@"; fi; }
-    # gh (the baseline, the release site); Python with Pillow for proof.py;
-    # what Chrome for Testing loads; unzip.
-    packages=(gh git python3 python3-pil unzip libnss3 libasound2t64 libxkbcommon0 libxcomposite1 libxdamage1 libxrandr2
+    # Python with Pillow for proof.py; what Chrome for Testing loads; unzip.
+    packages=(git python3 python3-pil unzip libnss3 libasound2t64 libxkbcommon0 libxcomposite1 libxdamage1 libxrandr2
               libpango-1.0-0 libcairo2 libcups2t64 libdrm2 libgbm1 fonts-dejavu-core)
     root_do env DEBIAN_FRONTEND=noninteractive apt-get install -y -q --no-install-recommends "${packages[@]}" > /dev/null ||
         { root_do apt-get update -qq > /dev/null &&
@@ -356,9 +311,9 @@ EOF2
         export CDP_CHROME_FLAGS="--no-sandbox ${CDP_CHROME_FLAGS:-}"
     fi
     echo "::endgroup::"
-    swiftc -O -o "$work/proof_compare" "$ROOT/tools/ci/proof_compare.swift"
+    swiftc -O -o "$work/proof_write" "$ROOT/tools/ci/proof_write.swift"
 else
-    xcrun swiftc -O -o "$work/proof_compare" "$ROOT/tools/ci/proof_compare.swift"
+    xcrun swiftc -O -o "$work/proof_write" "$ROOT/tools/ci/proof_write.swift"
 fi
 python="${PROOF_PYTHON:-${shoot_python:-python3}}"
 "$python" -c 'import PIL' 2> /dev/null || { echo "::error::$python has no Pillow (PROOF_PYTHON names one that has)"; exit 1; }
@@ -393,90 +348,9 @@ if stages prebuild; then
     exit 0
 fi
 
-echo "::group::The baseline"
-# Every kept proof: "<commit> <run> <branch>", newest run first.
-gh api --paginate "repos/$repo/actions/artifacts?name=proof&per_page=100" \
-    --jq '.artifacts[] | select(.expired | not) | "\(.workflow_run.head_sha) \(.workflow_run.id) \(.workflow_run.head_branch)"' \
-    | sort -k2,2nr > "$work/artifacts" || { echo "::warning::the kept proofs couldn't be listed"; : > "$work/artifacts"; }
-# The run of the newest commit on the first-parent line from <start> with a
-# proof. By commit, whatever branch it ran on: a commit proved after the
-# fact ran on a branch pushed at it.
-newest_on() {
-    local start="$1" sha run
-    for sha in $(git rev-list --first-parent -n 300 "$start" 2> /dev/null); do
-        run="$(awk -v sha="$sha" '$1 == sha { print $2; exit }' "$work/artifacts")"
-        if [ -n "$run" ]; then echo "$sha $run"; return 0; fi
-    done
-    return 1
-}
-base_ref=""
-found=""
-if [ -n "${PROOF_BASELINE_RUN:-}" ]; then
-    found="$(gh run view "$PROOF_BASELINE_RUN" --repo "$repo" --json headSha --jq .headSha) $PROOF_BASELINE_RUN"
-    base_ref="$(gh run view "$PROOF_BASELINE_RUN" --repo "$repo" --json headBranch --jq '"refs/heads/" + .headBranch')"
-elif [ "${GITHUB_EVENT_NAME:-}" = release ]; then
-    tag="${GITHUB_REF_NAME:-${ref#refs/tags/}}"
-    previous="$(gh release list --repo "$repo" --exclude-drafts --limit 50 --json tagName,publishedAt \
-        --jq "sort_by(.publishedAt) | reverse | map(.tagName) | map(select(. != \"$tag\")) | .[0] // empty")"
-    if [ -n "$previous" ]; then
-        base_ref="refs/tags/$previous"
-        run="$(awk -v branch="$previous" '$3 == branch { print $2; exit }' "$work/artifacts")"
-        sha="$(git rev-list -n 1 "$previous" 2> /dev/null || true)"
-        if [ -n "$run" ]; then found="$sha $run"; elif [ -n "$sha" ]; then found="$(newest_on "$sha" || true)"; fi
-    fi
-elif [ "$ref" = refs/heads/main ] || { [ -z "${GITHUB_BASE_REF:-}" ] && git merge-base --is-ancestor HEAD origin/main 2> /dev/null; }; then
-    # The previous release's proof: what this commit would replace.
-    previous="$(git describe --tags --abbrev=0 --match 'v[0-9]*' HEAD^ 2> /dev/null || true)"
-    if [ -n "$previous" ]; then
-        base_ref="refs/tags/$previous"
-        found="$(newest_on "$(git rev-list -n 1 "$previous")" || true)"
-    fi
-    if [ -z "$found" ]; then
-        base_ref=refs/heads/main
-        found="$(newest_on HEAD^ || true)"
-    fi
-else
-    branch="${GITHUB_BASE_REF:-main}"
-    base_ref="refs/heads/$branch"
-    found="$(newest_on "$(git merge-base HEAD "origin/$branch")" || true)"
-fi
-baseline="-"
-base_commit=""
-# A release's own: the proof.tar.gz asset its release job attached
-# (tools/ci/release_extras.sh), which outlives the artifact's 90 days.
-if [[ $base_ref == refs/tags/* ]] &&
-    gh release download "${base_ref#refs/tags/}" --repo "$repo" --pattern proof.tar.gz --dir "$work/release-proof" 2> /dev/null &&
-    mkdir -p "$work/baseline" && tar -xzf "$work/release-proof/proof.tar.gz" -C "$work/baseline" &&
-    [ -d "$work/baseline/screens" ]; then
-    baseline="$work/baseline/screens"
-    base_commit="$(git rev-list -n 1 "${base_ref#refs/tags/}" 2> /dev/null || true)"
-    found=""
-    echo "Baseline: $base_ref's proof.tar.gz, $(ls "$baseline" | wc -l | tr -d ' ') pictures"
-fi
-if [ -n "$found" ]; then
-    base_commit="${found%% *}"
-    if gh run download "${found##* }" --repo "$repo" --name proof --dir "$work/baseline" && [ -d "$work/baseline/screens" ]; then
-        baseline="$work/baseline/screens"
-        echo "Baseline: $base_ref at $base_commit (run ${found##* }), $(ls "$baseline" | wc -l | tr -d ' ') pictures"
-    else
-        echo "::warning::the baseline's proof (run ${found##* }) couldn't be fetched: every screen is new"
-        base_commit=""
-    fi
-elif [ "$baseline" = - ] && [ -z "$(git tag -l 'v[0-9]*')" ] &&
-    gh release download "${ISOMER_BASELINE#* }" --repo "${ISOMER_BASELINE%% *}" --pattern proof.tar.gz \
-        --dir "$work/isomer-proof" 2> /dev/null &&
-    mkdir -p "$work/baseline" && tar -xzf "$work/isomer-proof/proof.tar.gz" -C "$work/baseline" &&
-    [ -d "$work/baseline/screens" ]; then
-    # No proof here yet: the Playground's pictures in isomer's last release
-    # that took them (the Storybook's there have no namesakes here).
-    baseline="$work/baseline/screens"
-    base_ref="${ISOMER_BASELINE%% *}@${ISOMER_BASELINE#* }"
-    base_commit="$(gh api "repos/${ISOMER_BASELINE%% *}/commits/${ISOMER_BASELINE#* }" --jq .sha 2> /dev/null || true)"
-    echo "Baseline: $base_ref's proof.tar.gz, $(ls "$baseline"/*-playground-*.png 2> /dev/null | wc -l | tr -d ' ') pictures of the Playground"
-elif [ "$baseline" = - ]; then
-    echo "No proof of $base_ref to compare with: every screen is new"
-fi
-echo "::endgroup::"
+# What the proof is of: the version (the app's committed line's, or
+# PROOF_VERSION, a proposal's own).
+version="${PROOF_VERSION:-$(sed -n '/CFBundleShortVersionString/{n;s/.*<string>\(.*\)<\/string>.*/\1/p;}' "$ROOT/apple/playground_ios_application/Info.plist")}"
 
 if stages compare; then
     status=0

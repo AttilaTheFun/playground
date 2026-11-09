@@ -15,7 +15,7 @@ set -euo pipefail
 sha="${1:?usage: verified.sh <commit>}"
 repo="${GITHUB_REPOSITORY:?}"
 # Which jobs ran depends on it: a public repository's proof is pictured on
-# GitHub's runners and compared in proof-compare, a private one's in proof
+# GitHub's runners and written in proof-compare, a private one's in proof
 # alone. A job missing from a run fails it, so a job renamed here or in the
 # workflow can't drop out of the check unseen (as isomer's).
 private="$(gh api "repos/$repo" --jq .private)"

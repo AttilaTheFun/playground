@@ -180,12 +180,16 @@ paths rewritten to the root; commits before 0.35 are isomer's alone).
   tier-1 platform, each with its one renderer (`review-<platform>-playground`,
   app "Playground", the version `version_name` says): its projects, a
   project open, and 2048 and the Pokédex built on the device and running,
-  each picture named `<platform>-playground-<screen>` and compared with the
-  previous release's (isomer's v0.46.1 proof until this repository has one
-  of its own). Built in CI's Linux container; the iPhone and the Mac
-  pictured on GitHub's `xcode-27` runners, the web in Ubuntu's Chrome, and
-  Android on an emulator leased from OS Server (the compiler it carries is
-  arm64's alone). Only CI's proof counts; Reviews holds a release until its
+  written in Reviews' format 2 (`tools/ci/proof_write.swift`): each picture
+  an item under an id stable from release to release,
+  `<platform>/<device>/<screen>` (`ios/phone/game2048`,
+  `web/desktop/pokedex`), its screen the capture's file name in
+  `tools/proof/proof.py`. CI compares nothing: Reviews compares a release's
+  proof with the previous release's, item by id, and a release's draft
+  carries it as proof.zip. Built in CI's Linux container; the iPhone and
+  the Mac pictured on GitHub's `xcode-27` runners, the web in Ubuntu's
+  Chrome, and Android on an emulator leased from OS Server (the compiler it
+  carries is arm64's alone). Only CI's proof counts; Reviews holds a release until its
   commit has one. Run by hand elsewhere, stamp the build's version into the
   working tree first (`tools/playground/stamp.py 0.47.N`) and check the
   files out after; the web Playground's compiler is the in-browser one an
