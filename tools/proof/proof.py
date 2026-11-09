@@ -28,7 +28,7 @@ out: the iPhone's status bar (oss's simctl override from an ios lease's
 start: 9:41; a simulator made here, the same override), Android's cropped
 off (its demo mode held it still one run and not the next), and on the
 desktops everything but the app's window (a Mac's and Windows' screenshots
-are cropped to the app's frontmost window (a Mac slot's by OS Server), a
+are cropped to the app's frontmost window (a Mac slot's by Shireworks), a
 Mac's rounded corners cut away, Linux's below GNOME's top bar and right of
 its dock).
 
@@ -44,7 +44,7 @@ intent's ISO_ extras, the web page's ISO_ query, the desktops' environment.
 The builds are this checkout's, made here (-c opt) before the platforms
 start, except Linux's (packaged in a Linux container by tools/ci/proof.sh,
 --linux-packages) and Windows' (on its VM). Then the platforms run at once,
-each on a lease of its own (an iOS simulator, in OS Server's primary macOS
+each on a lease of its own (an iOS simulator, in Shireworks' primary macOS
 VM, driven through oss alone (PROOF_IOS=local: simctl on this Mac, for a
 server whose simulators are its Mac's), an Android emulator, a slot of OS
 Server's primary macOS VM (PROOF_MAC=vm: a macOS VM of its own), Linux and
@@ -145,7 +145,7 @@ def flat(path):
 def cut_corners(path):
     """A Mac window's shot without what isn't the window's: its outer pixel
     and the curve of its corners, where its edge blends with its shadow and
-    the desktop behind (OS Server's proof saw the edge 15-20 levels darker
+    the desktop behind (Shireworks' proof saw the edge 15-20 levels darker
     in one of two runs, the window's own pixels the same), made transparent."""
     try:
         from PIL import Image, ImageDraw
@@ -288,7 +288,7 @@ def shoot_playground(review, platform, device, orientation, launcher, waits):
     review.cell(name, device, orientation, shots)
 
 
-# --- iOS (an oss simulator lease: since OS Server put its `ios` leases in
+# --- iOS (an oss simulator lease: since Shireworks put its `ios` leases in
 # its primary macOS VM, the simulator isn't on this Mac, so everything goes
 # through oss's verbs: simctl, upload, download, screenshot. PROOF_IOS=local:
 # simctl here, against the lease's OSS_UDID, for a server whose simulators
@@ -307,7 +307,7 @@ def oss_api():
 
 
 class LeasedSimulator:
-    """An oss `ios` lease's simulator, wherever OS Server runs it (its
+    """An oss `ios` lease's simulator, wherever Shireworks runs it (its
     primary macOS VM since 0.14), through oss alone: `simctl` (`--env=NAME=
     VALUE` its SIMCTL_CHILD_NAME), `screenshot` (masked, the status bar held
     at 9:41 since the lease began). API 20 for the environment."""
@@ -322,7 +322,7 @@ class LeasedSimulator:
         return sh(command + list(arguments), check=check)
 
     def install_ipa(self, ipa):
-        # Through OS Server's storage, which unpacks the .ipa itself: simctl
+        # Through Shireworks' storage, which unpacks the .ipa itself: simctl
         # install of a local .app zips it here first, with ditto, which only
         # a Mac has (the proof runs in a Linux container).
         put = json.loads(sh(["oss", "storage", "put", ipa, "--ttl=2h", "--json"]).stdout)
@@ -378,7 +378,7 @@ class LocalSimulator:
 
 def here_simulator():
     """--here: an iPhone simulator of the run's own on this Mac (GitHub's
-    `xcode-27` runner), as OS Server's ios leases are: an iPhone 17 of the
+    `xcode-27` runner), as Shireworks' ios leases are: an iPhone 17 of the
     newest iOS this Xcode has (PROOF_IOS_DEVICE, PROOF_IOS_RUNTIME to
     choose), booted. Its exports, as a lease's."""
     device = os.environ.get("PROOF_IOS_DEVICE", "iPhone 17")
@@ -401,7 +401,7 @@ def here_simulator():
 def ios(review, ipa):
     local = HERE or os.environ.get("PROOF_IOS", "oss") == "local"
     if not local and (api := oss_api()) < 20:
-        raise RuntimeError(f"the iPhone's proof needs OS Server's API 20 (an ios lease's launch environment); "
+        raise RuntimeError(f"the iPhone's proof needs Shireworks' API 20 (an ios lease's launch environment); "
                            f"this server's is {api}. PROOF_IOS=local for a server whose simulators are its Mac's")
     env = here_simulator() if HERE else lease("ios")
     try:
@@ -433,7 +433,7 @@ def ios(review, ipa):
             release(env)
 
 
-# --- macOS (a slot of OS Server's primary macOS VM; PROOF_MAC=vm: a whole
+# --- macOS (a slot of Shireworks' primary macOS VM; PROOF_MAC=vm: a whole
 # vanilla VM, as until 2026-11-03; --here this Mac. Either way the app
 # built here, copied in)
 
@@ -478,7 +478,7 @@ while kill -0 "$pid" 2> /dev/null; do sleep 1; done
 
 
 def macos(review, archive):
-    """On a slot of OS Server's primary macOS VM (a `mac` lease), unless
+    """On a slot of Shireworks' primary macOS VM (a `mac` lease), unless
     PROOF_MAC=vm: then a whole macOS VM of its own; --here this Mac."""
     if HERE:
         macos_here(review, archive)
@@ -513,7 +513,7 @@ function run(argv) {
 
 def macos_here(review, archive):
     """--here: this Mac's own screen (GitHub's `xcode-27` runner, its screen
-    made OS Server's slots' 1920 by 1200 by tools/ci/proof.sh): the app
+    made Shireworks' slots' 1920 by 1200 by tools/ci/proof.sh): the app
     unzipped here, opened as the Dock opens it, pictured by its window alone
     (`screencapture -l`: no shadow, nothing behind), with a home of the
     proof's own (CFFIXED_USER_HOME), as on a slot."""
@@ -730,7 +730,7 @@ def build_android(abi=None):
 
 
 def android(review, apk):
-    """On an emulator leased from OS Server, or --here the one this
+    """On an emulator leased from Shireworks, or --here the one this
     machine's adb sees (PROOF_ADB, PROOF_ANDROID_SERIAL: GitHub's Ubuntu
     runner's, tools/ci/hosted_android_emulator.sh)."""
     env = None if HERE else lease("android")

@@ -1,9 +1,9 @@
 #!/bin/bash
 # CI's build of every platform in a Linux container, on a self-hosted
-# runner's Mac: a container leased from that Mac's OS Server (`oss machine
+# runner's Mac: a container leased from that Mac's Shireworks (`oss machine
 # run container --inside`), in the image a Visor session runs in, so CI
 # builds where an agent works. The Apple targets take Xcode 27.0's SDK
-# archive and rules_applecross's ported tools from the same OS Server's
+# archive and rules_applecross's ported tools from the same Shireworks server's
 # files (by SHA-256, with its cache's read token) through a downloader
 # config written here, and its Bazel reads that server's cache: no host is
 # named in the repository.
@@ -13,7 +13,7 @@
 #                                     # (verify's)
 #   tools/ci/container_build.sh all   # every app and test built, nothing
 #                                     # run or copied: main's populate (the
-#                                     # Bazel cache's one writer: OS Server
+#                                     # Bazel cache's one writer: Shireworks
 #                                     # grants that job the write)
 #   tools/ci/container_build.sh pr    # the default's build and tests: a pull
 #                                     # request's (the owner, 2026-11-08:
@@ -27,11 +27,11 @@
 #
 #   ISOMER_EXECUTION_LOGS  a folder for Bazel's execution logs (compact),
 #                    to compare two runs' action keys when the cache misses
-#   OSS_FILES_HOST   the name the container reaches this Mac's OS Server by
+#   OSS_FILES_HOST   the name the container reaches this Mac's Shireworks by
 #                    (default: this Mac's tailnet name, from Tailscale)
 #   ISOMER_CI_IMAGE  the image (default: Visor's agent image, tools/ci/agent_image)
 #   ISOMER_CI_VOLUME Bazel's tree, kept between builds (default: playground-ci;
-#                    `:keep`, so OS Server keeps it when the lease ends)
+#                    `:keep`, so Shireworks keeps it when the lease ends)
 #
 # The Playground's compilers must be staged first
 # (tools/ci/stage_playground_compilers.sh): the apps carry them.
@@ -58,9 +58,9 @@ IMAGE="${ISOMER_CI_IMAGE:-$(cat "$ROOT/tools/ci/agent_image")}"
 VOLUME="${ISOMER_CI_VOLUME:-playground-ci}"
 SDK_SHA256="251c252f7f41bcd3e08655e49e182686682d705945f4a2807049b9051c606ebb"
 
-# In CI the job's own container builds (the playground-jit runners: OS Server's
+# In CI the job's own container builds (the playground-jit runners: Shireworks'
 # single-use Linux containers, its cache's read token in ~/.netrc and its
-# cache in ~/.bazelrc already), in place. On a Mac (OS Server's own, whose
+# cache in ~/.bazelrc already), in place. On a Mac (Shireworks' own, whose
 # folders containers may mount) it leases one, as before.
 inside=""
 [ "$(uname -s)" = Darwin ] || inside=1
@@ -76,9 +76,9 @@ if [ -z "$host" ] && [ -z "$inside" ]; then
     tailscale=/Applications/Tailscale.app/Contents/MacOS/Tailscale
     host="$("$tailscale" status --json | python3 -c 'import json, sys; print(json.load(sys.stdin)["Self"]["DNSName"].rstrip("."))')"
 fi
-[ -n "$host" ] || { echo "container_build.sh: no host for OS Server's files: set OSS_FILES_HOST (or OSS_SERVERS)" >&2; exit 1; }
+[ -n "$host" ] || { echo "container_build.sh: no host for Shireworks' files: set OSS_FILES_HOST (or OSS_SERVERS)" >&2; exit 1; }
 
-# The placeholders in MODULE.bazel, to this Mac's OS Server.
+# The placeholders in MODULE.bazel, to this Mac's Shireworks.
 mkdir -p "$ROOT/.ci"
 cat > "$ROOT/.ci/downloader.cfg" <<EOF
 rewrite apple-sdks\.invalid/.* http://$host:7490/files/sha256/$SDK_SHA256
@@ -126,7 +126,7 @@ tests=(
     //web/splash_web_application:site_imports_test
 )
 flags=(--config=apple_on_linux "--downloader_config=$root/.ci/downloader.cfg")
-# A pull request never writes the cache (OS Server grants populate alone the write).
+# A pull request never writes the cache (Shireworks grants populate alone the write).
 [ "$mode" != pr ] || flags+=(--noremote_upload_local_results)
 # An execution log an invocation, named for what it builds (ISOMER_EXECUTION_LOGS).
 logs="${ISOMER_EXECUTION_LOGS:-}"

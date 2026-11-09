@@ -99,7 +99,7 @@ paths rewritten to the root; commits before 0.35 are isomer's alone).
   takes a staged one instead: when the gitignored
   `apple/playground_macos_application/staged_toolchain` is there (a
   playground_toolchain/ tree a Mac assembled), the Mac's Resources are it.
-  CI stages these from OS Server's files with
+  CI stages these from Shireworks' files with
   tools/ci/stage_playground_compilers.sh (`ios-simulator`, `ios-device`,
   `macos`, `android`, and `web`: the browser's compiler as stage_bundle.sh
   writes it, which package_site.sh --toolchain-from takes; a new archive is
@@ -136,7 +136,7 @@ paths rewritten to the root; commits before 0.35 are isomer's alone).
   `tools/playground/publish_hot_reload.sh`.
 - **CI** (`.github/workflows/build.yml`, as isomer's): a pull request's
   `container` builds every app in a Linux container and runs the tests
-  without a GUI; main's `populate` builds everything into OS Server's
+  without a GUI; main's `populate` builds everything into Shireworks'
   cache. By hand (`run:`): `verify` (the build and the tests, and the proof
   beside it), `prerelease` and `release` (the Alphas, published through
   Applications Server, and a draft release: CI's, never an agent's), and
@@ -188,7 +188,7 @@ paths rewritten to the root; commits before 0.35 are isomer's alone).
   proof with the previous release's, item by id, and a release's draft
   carries it as proof.zip. Built in CI's Linux container; the iPhone and
   the Mac pictured on GitHub's `xcode-27` runners, the web in Ubuntu's
-  Chrome, and Android on an emulator leased from OS Server (the compiler it
+  Chrome, and Android on an emulator leased from Shireworks (the compiler it
   carries is arm64's alone). Only CI's proof counts; Reviews holds a release until its
   commit has one. Run by hand elsewhere, stamp the build's version into the
   working tree first (`tools/playground/stamp.py 0.47.N`) and check the

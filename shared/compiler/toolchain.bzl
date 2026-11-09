@@ -13,7 +13,7 @@ and the C toolchain's (lld). On a Mac the Mach-O files are thinned to arm64
 (lipo), about half their universal size; each slice keeps its own signature.
 
 That is the compiler of the machine that builds: a Mac app built on Linux
-(CI's, in OS Server's container) would carry Linux's swift-frontend. So the
+(CI's, in Shireworks' container) would carry Linux's swift-frontend. So the
 Mac app can take a staged one instead (`staged`): a playground_toolchain/
 tree a Mac assembled, unpacked into the Mac app's gitignored
 staged_toolchain/ (tools/ci/stage_playground_compilers.sh macos), copied
