@@ -57,6 +57,12 @@ assemble_directory(
     name = "playground_site",
     spec = {
         "web/index.html": "index.html",
+        # The platform services both pages give a build.
+        "web/page_dependencies.js": "page_dependencies.js",
+        # The hidden web view's page: the build headless, drawn by the app
+        # (apple/host/WebViewEngine.swift).
+        "web/native_head.html": "native_head.html",
+        "web/native_head.js": "native_head.js",
         "@isomer//wasm/libraries/swift_ui:runtime/hot_host.js": "hot_host.js",
         "//web/playground_web_application:swift_ffi_runtime_js": "swift_ffi_runtime.js",
         "//web/playground_web_application:app_bridge_js_files": "app_bridge.js",
@@ -328,6 +334,8 @@ swift_library(
         "//apple/platform_services_host",
         "@isomer//apple/libraries/swift_ui:isomer",
         "@isomer//apple/libraries/wasm_view",
+        # AppleRun makes the WasmKit engine itself (TimedEngine wraps it).
+        "@isomer//shared/wasm_host:wasmkit_runtime",
         "@isomer//shared/platform_services",
         "@isomer//swift_ffi/runtime/swift_wasm_host",
         "@swiftpkg_agent_ui//:AgentUI",
