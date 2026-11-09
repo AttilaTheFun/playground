@@ -24,11 +24,13 @@
 #     built in CI's container (where the Android one is pictured too, on an
 #     emulator leased from OS Server: its compiler is arm64's alone),
 #     pictured on GitHub's own machines (a private copy's on OS Server's),
-#     each picture compared with the previous release's, uploaded as the
-#     `proof` artifact Reviews reads (proof, proof-shoot, proof-compare;
-#     tools/ci/proof.sh). `kind: quick` takes the same screens, marked as a
-#     quick proof's. On a commit of main, or, to bisect a regression, on a
-#     branch pushed at an earlier one;
+#     written in Reviews' format 2 (each picture an item under a stable id;
+#     Reviews compares it with the previous release's, not CI), uploaded
+#     as the `proof` artifact and attached to a release's draft as
+#     proof.zip (proof, proof-shoot, proof-compare; tools/ci/proof.sh).
+#     `kind: quick` takes the same screens, marked as a quick proof's. On a
+#     commit of main, or, to bisect a regression, on a branch pushed at an
+#     earlier one;
 #   - prerelease (main): alpha alone: its version asked of Applications
 #     Server, the Playground built for the iPhone and iPad (.ipa), the Mac
 #     (.zip) and Android (.apk) as Alphas and the web site packaged, the
@@ -49,9 +51,9 @@
 #   production by the server (nothing Apple rebuilt), Android's built for
 #   production and published, and the release given its assets: the signed
 #   builds (the iPhone's, the Mac's with its disk image, Android's, and
-#   builds.json, which Applications reads), the proof and the iPhone app for
-#   the simulator. pages.yml deploys its web site. A pre-release is never
-#   released so.
+#   builds.json, which Applications reads) and the iPhone app for the
+#   simulator, beside the proposal's proof.zip. pages.yml deploys its web
+#   site. A pre-release is never released so.
 # The signed builds of a proposal (its Alphas) and of a release (Production)
 # are attached to its GitHub release, as Applications lists only apps whose
 # builds are there (the private AttilaTheFun/applications'
@@ -80,10 +82,6 @@ on:
         type: choice
         options: [full, quick]
         default: full
-      baseline_run:
-        description: A run whose proof to compare with (empty for the previous release's)
-        required: false
-        default: ""
 # A pull request's newer push (a rebase, an update with main) cancels its
 # branch's older run, whose result no longer counts. Every other run
 # (populate, a run by hand, a release) is a group of its own and never
@@ -197,22 +195,14 @@ jobs:
     timeout-minutes: 240
     permissions:
       contents: read
-      # The baseline: an earlier run's proof artifact.
-      actions: read
     env:
-      GH_TOKEN: ${{ github.token }}
-      # The branch, for a pull request's head (its run's ref is GitHub's merge).
-      PROOF_REF: ${{ github.event.pull_request && format('refs/heads/{0}', github.head_ref) || github.ref }}
       PROOF_KIND: ${{ inputs.kind || 'full' }}
-      PROOF_BASELINE_RUN: ${{ inputs.baseline_run }}
     steps:
       - uses: actions/checkout@v5
         with:
           # A pull request's own head, not GitHub's merge of it: the commit
-          # its proof is listed under. The whole history: the baseline is
-          # found along the base branch.
+          # its proof is of.
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
-          fetch-depth: 0
       - name: The app on every platform, pictured, and the proof
         if: github.event.repository.private
         # exec: the runner's cancel reaches the script's trap, which releases its leases.
@@ -294,8 +284,10 @@ jobs:
           path: ${{ runner.temp }}/review
           retention-days: 7
 
-  # The parts compared with the baseline into the `proof` artifact Reviews
-  # reads, whichever came back (a missing platform's pictures fail it).
+  # The parts written into the `proof` artifact Reviews reads (format 2:
+  # proof.json and its files; tools/ci/proof_write.swift), whichever came
+  # back (a missing platform's pictures fail it). Nothing is compared: the
+  # job keeps its name, which tools/ci/verified.sh and alpha ask for.
   proof-compare:
     needs: [proof, proof-shoot]
     if: ${{ !cancelled() && !github.event.repository.private && needs.proof.result == 'success' }}
@@ -303,17 +295,12 @@ jobs:
     timeout-minutes: 30
     permissions:
       contents: read
-      actions: read
     env:
-      GH_TOKEN: ${{ github.token }}
-      PROOF_REF: ${{ github.event.pull_request && format('refs/heads/{0}', github.head_ref) || github.ref }}
       PROOF_KIND: ${{ inputs.kind || 'full' }}
-      PROOF_BASELINE_RUN: ${{ inputs.baseline_run }}
     steps:
       - uses: actions/checkout@v5
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
-          fetch-depth: 0
       - uses: actions/download-artifact@v4
         with:
           pattern: proof-part-*
@@ -338,7 +325,8 @@ jobs:
     # notarizes the Mac's), and the draft release made with the site
     # (tools/ci/draft_release.sh), the builds as the server signed them
     # attached to it (tools/ci/attach_release.sh: Playground-<version>-ios.ipa,
-    # -macos.zip, -android.apk and builds.json, which Applications lists).
+    # -macos.zip, -android.apk and builds.json, which Applications lists),
+    # and a release's proof with them (proof.zip).
     needs: [verify, proof, proof-compare]
     if: >-
       always() && github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' &&
@@ -404,6 +392,17 @@ jobs:
         run: >-
           tools/ci/publish_from_ci.sh --notes-file "$RUNNER_TEMP/notes.md" --download "$RUNNER_TEMP/assets"
           .ci/packages/*.zip .ci/packages/*.ipa .ci/packages/*.apk
+      # A release's proof (this run's `proof`, Reviews' format 2), zipped
+      # among the draft's assets as proof.zip: the release keeps it, and
+      # Reviews compares the next release's with it.
+      - uses: actions/download-artifact@v4
+        if: inputs.run == 'release'
+        with:
+          name: proof
+          path: ${{ runner.temp }}/proof
+      - name: The proof, among the assets
+        if: inputs.run == 'release'
+        run: tools/ci/proof_zip.sh "$RUNNER_TEMP/proof" "$RUNNER_TEMP/assets/proof.zip"
       - name: The draft release, its builds attached
         env:
           GH_TOKEN: ${{ github.token }}
@@ -459,8 +458,8 @@ jobs:
   # builds, downloaded as each is promoted or published (--download:
   # Playground-<version>-ios.ipa, -macos.zip, -macos.dmg, -android.apk and
   # builds.json), replace the Alphas on the release
-  # (tools/ci/attach_release.sh); then its proof and the iPhone app for the
-  # simulator (tools/ci/release_extras.sh).
+  # (tools/ci/attach_release.sh), beside the proposal's proof.zip; then the
+  # iPhone app for the simulator (tools/ci/release_extras.sh).
   release:
     if: github.event_name == 'release' && !github.event.release.prerelease
     runs-on: [self-hosted, playground-jit]
@@ -468,7 +467,7 @@ jobs:
     permissions:
       # The release's assets.
       contents: write
-      # Its commit's proof artifact.
+      # The runs tools/ci/verified.sh reads.
       actions: read
       # The OIDC token Applications Server checks: a v* tag's, by a releaser.
       id-token: write
@@ -486,11 +485,6 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: tools/ci/verified.sh "$GITHUB_SHA"
-      # Its proof, which the release carries.
-      - name: Its proof
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: tools/ci/release_extras.sh proof "$GITHUB_REF_NAME" .ci/release
       # Untrusted text reaches the shell through env, never ${{ }} in run.
       - name: Notes
         env:
@@ -533,7 +527,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: tools/ci/attach_release.sh "$GITHUB_REF_NAME" "$RUNNER_TEMP/assets"
-      - name: The proof and the simulator's app, attached
+      - name: The simulator's app, attached
         env:
           GH_TOKEN: ${{ github.token }}
-        run: tools/ci/release_extras.sh upload "$GITHUB_REF_NAME" .ci/release .ci/simulator
+        run: tools/ci/release_extras.sh upload "$GITHUB_REF_NAME" .ci/simulator

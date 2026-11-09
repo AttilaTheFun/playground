@@ -34,8 +34,9 @@ its dock).
 
 Each platform's pictures are a folder of the review store's snapshots,
 <dir>/review-<platform>-playground/manifest.json (AttilaTheFun/reviews'
-MANIFEST.md). CI runs it (tools/ci/proof.sh), which makes the `proof`
-artifact of those folders' pictures; only CI's proof counts. The launch
+MANIFEST.md). CI runs it (tools/ci/proof.sh), which writes those folders'
+pictures into the `proof` artifact in Reviews' format 2
+(tools/ci/proof_write.swift); only CI's proof counts. The launch
 hooks reach each platform as it passes a process environment: simctl's
 SIMCTL_CHILD_ (`oss machine simctl --env`), `open --env`, an Android
 intent's ISO_ extras, the web page's ISO_ query, the desktops' environment.
@@ -58,7 +59,11 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 APP = {"name": "Playground", "bundle": "com.LoganShire.IsomerPlayground"}
 # The Playground's screens: its opening screen, a project open, and two
 # projects built on the device and running (2048; the Pokédex, whose
-# @Observable needs the compiler's macro plugins).
+# @Observable needs the compiler's macro plugins). Each: its slug, which
+# names its capture and is its id in the proof (ios/phone/game2048; keep
+# it as it is, lowercase letters, digits, - and . alone, or Reviews finds
+# no picture of it in the previous release), its title, its environment
+# and how long it waits.
 PLAYGROUND_SHOTS = [
     ("projects", "Projects", {}, "open"),
     ("project", "A project (2048)", {"ISO_PLAYGROUND_OPEN_PROJECT": "2048"}, "open"),
