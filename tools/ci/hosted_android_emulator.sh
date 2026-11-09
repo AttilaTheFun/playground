@@ -2,7 +2,7 @@
 # An Android phone on GitHub's own Ubuntu runner (x86_64, with KVM: free for
 # a public repository), for the proof's pictures (tools/ci/proof.sh --stage
 # shoot --platform android): the runner's Android SDK's emulator, an x86_64
-# Android 15 (the AOSP image) shaped as OS Server's android leases are
+# Android 15 (the AOSP image) shaped as Shireworks' android leases are
 # (1080×2400, 420 dpi), so its pictures and theirs compare, its status bar
 # held still by SystemUI's demo mode. Copied from isomer's. Unused until the
 # Android Playground's compiler has an x86_64 build (TODO.md, "x86_64
@@ -58,7 +58,7 @@ for _ in $(seq 1 60); do
     sleep 2
 done
 sleep 20
-# Gesture navigation, as OS Server's phones have (the AOSP image comes up
+# Gesture navigation, as Shireworks' phones have (the AOSP image comes up
 # with the three-button bar).
 "$adb" shell cmd overlay enable com.android.internal.systemui.navbar.gestural > /dev/null 2>&1 || true
 "$adb" shell settings put global sysui_demo_allowed 1

@@ -21,7 +21,7 @@
 #   --stage build --apps <dir> --review <dir>
 #       (CI's container) the app built for every platform into
 #       <apps>/<platform>/, and the Android one pictured here, on an emulator
-#       leased from OS Server, into <review>: its compiler, built into the
+#       leased from Shireworks, into <review>: its compiler, built into the
 #       app, is arm64's alone, and GitHub's runners with KVM are x86_64
 #       (TODO.md, "x86_64 Android")
 #   --stage prebuild --apps <dir> --review <dir>
@@ -51,9 +51,9 @@
 # Server's files; Android's, the web's, its pictures in Chrome for Testing
 # there), or on a Mac with its Xcode and Chrome when run by hand there.
 # Linux's (when PROOF_PLATFORMS names it) is packaged in a container leased
-# from OS Server; Windows' is built on its VM. The compilers that Bazel
+# from Shireworks; Windows' is built on its VM. The compilers that Bazel
 # doesn't make: the iPhone simulator's, Android's, the Mac's and the
-# browser's, staged from OS Server's files
+# browser's, staged from Shireworks' files
 # (tools/ci/stage_playground_compilers.sh).
 #
 #   PROOF_PYTHON        the python3 that runs proof.py, with Pillow, which crops
@@ -61,8 +61,8 @@
 #   PROOF_VERSION       the version the proof is of (default: the app's
 #                       committed MAJOR.MINOR.0)
 #   PROOF_MAC           vm: the Mac's pictures on a macOS VM of their own, as
-#                       before 2026-11-03 (default: a slot of OS Server's primary)
-#   OSS_FILES_HOST      the name OS Server's files are reached by (default: the
+#                       before 2026-11-03 (default: a slot of Shireworks' primary)
+#   OSS_FILES_HOST      the name Shireworks' files are reached by (default: the
 #                       first of OSS_SERVERS, else this Mac's tailnet name)
 #
 # Every lease is released however the script ends: proof.py's own as it
@@ -143,7 +143,7 @@ kill_tree() {
     kill "$1" 2> /dev/null || true
 }
 release_ours() {
-    # This job's leases, by the label OS Server gives a CI job's ("… #<run> · <job>").
+    # This job's leases, by the label Shireworks gives a CI job's ("… #<run> · <job>").
     [ -n "${GITHUB_RUN_ID:-}" ] && [ -n "${GITHUB_JOB:-}" ] || return 0
     { oss machine list 2> /dev/null | grep -F " #$GITHUB_RUN_ID · $GITHUB_JOB" || true; } | awk '{ print $1 }' | while read -r id; do
         oss machine release "$id" > /dev/null 2>&1 && echo "proof.sh: released $id" || true
@@ -193,11 +193,11 @@ build_apps() {
 }
 
 # --stage build: the apps built, and the Android Playground pictured here,
-# on an emulator leased from OS Server (its compiler, built into the app, is
+# on an emulator leased from Shireworks (its compiler, built into the app, is
 # arm64's alone, and GitHub's runners with KVM are x86_64).
 build() {
     build_apps
-    echo "::group::The Android Playground, on an emulator leased from OS Server"
+    echo "::group::The Android Playground, on an emulator leased from Shireworks"
     background "$python" -u "$ROOT/tools/proof/proof.py" android --from "$apps" --review "$review" --commit "$commit" \
         ${quick[@]+"${quick[@]}"} || { echo "::error::the Android Playground: a picture didn't come back"; exit 1; }
     echo "::endgroup::"
@@ -206,7 +206,7 @@ build() {
 
 # --stage shoot, before anything else: what the platform's machine needs.
 # GitHub's runners: Python's own (Pillow in a venv of the run's), Xcode
-# 27.2 for the simulator, the Mac's screen made OS Server's slots' (its own
+# 27.2 for the simulator, the Mac's screen made Shireworks' slots' (its own
 # is 1024 by 768), its Chrome; Android's an emulator booted on the Ubuntu
 # runner's KVM, once the Playground has an x86_64 compiler to picture there.
 shoot_setup() {
@@ -224,7 +224,7 @@ shoot_setup() {
             brew install displayplacer > /dev/null 2>&1 || true
             local screen
             screen="$(displayplacer list 2> /dev/null | sed -n 's/^Persistent screen id: //p' | head -1 || true)"
-            # OS Server's mac slots' screen (1920 by 1200 at 1x), so the
+            # Shireworks' mac slots' screen (1920 by 1200 at 1x), so the
             # apps open their windows at the sizes they open there; else
             # the nearest the runner's display has.
             if [ -z "$screen" ] || ! { displayplacer "id:$screen res:1920x1200 scaling:off origin:(0,0) degree:0" > /dev/null 2>&1 ||
@@ -261,9 +261,9 @@ shoot() {
 # The tools first: nothing leased if one doesn't build. proof.py's python
 # with Pillow: without, its desktops' pictures go uncropped (the clocks,
 # the wallpaper), which it only logs.
-# In CI the job's own container (the playground-jit runners: OS Server's
+# In CI the job's own container (the playground-jit runners: Shireworks'
 # single-use Linux containers) builds and pictures, in place; on a Mac
-# (OS Server's own) it builds with the Mac's Xcode.
+# (Shireworks' own) it builds with the Mac's Xcode.
 inside=""
 [ "$(uname -s)" = Darwin ] || inside=1
 stages shoot && inside=""
@@ -281,7 +281,7 @@ fi
 if stages shoot; then
     shoot_setup
 elif [ -n "$inside" ]; then
-    [ -n "$host" ] || { echo "::error::no host for OS Server's files: set OSS_FILES_HOST (or OSS_SERVERS)"; exit 1; }
+    [ -n "$host" ] || { echo "::error::no host for Shireworks' files: set OSS_FILES_HOST (or OSS_SERVERS)"; exit 1; }
     echo "::group::The container's tools"
     root_do() { if [ "$(id -u)" = 0 ]; then "$@"; else sudo "$@"; fi; }
     # Python with Pillow for proof.py; what Chrome for Testing loads; unzip.
@@ -290,7 +290,7 @@ elif [ -n "$inside" ]; then
     root_do env DEBIAN_FRONTEND=noninteractive apt-get install -y -q --no-install-recommends "${packages[@]}" > /dev/null ||
         { root_do apt-get update -qq > /dev/null &&
           root_do env DEBIAN_FRONTEND=noninteractive apt-get install -y -q --no-install-recommends "${packages[@]}" > /dev/null; }
-    # The Apple targets' toolchains and SDK archive (OS Server's files),
+    # The Apple targets' toolchains and SDK archive (Shireworks' files),
     # for every Bazel command here (proof.py's, package_site.sh's): the
     # checkout's own .bazelrc.user, which a CI checkout doesn't have.
     sdk="$(sed -n 's/^SDK_SHA256="\(.*\)"/\1/p' "$ROOT/tools/ci/container_build.sh")"
@@ -327,7 +327,7 @@ fi
 
 if stages all build prebuild; then
 echo "::group::The Playground's compilers"
-# The staged compilers from OS Server's files, unpacked where the apps'
+# The staged compilers from Shireworks' files, unpacked where the apps'
 # BUILD files find them (the checkout's gitignored folders).
 "$ROOT/tools/ci/stage_playground_compilers.sh" ios-simulator android macos web
 web_toolchain="$ROOT/web/playground_web_application/staged_toolchain"
