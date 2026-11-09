@@ -12,10 +12,10 @@ the release's tag; AgentUI and UpdateKit by version there too.
 
 module(
     name = "playground",
-    version = "0.47.0",
+    version = "0.48.0",
 )
 
-bazel_dep(name = "isomer", version = "0.46.1")
+bazel_dep(name = "isomer", version = "0.48.1")
 
 # --- What isomer needs from its consumer -------------------------------
 
