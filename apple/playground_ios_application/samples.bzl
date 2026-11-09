@@ -4,7 +4,7 @@ A template is ONE .swift file the Playground compiles as a single-file project
 against its SDK: a header, a `@main` App wrapper that hosts the example's
 screen, then the shared source(s) with their `import` lines stripped (the
 wrapper imports what the SDK provides). The sources are copies of the example
-apps' screens (examples/shared/example_application)."""
+apps' screens (isomer's examples/shared/example_application)."""
 
 def playground_sample(name, out, title, srcs, app = None, services = False, platform_services = False, bridge_shim = False):
     """Assembles samples/<out>.swift from `srcs` (labels of shared sources).

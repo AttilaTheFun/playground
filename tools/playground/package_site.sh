@@ -1,9 +1,10 @@
 #!/bin/bash
-# Packages Isomer's web site as isomer-site.tar.gz, the asset a GitHub
-# release carries and .github/workflows/pages.yml (in the isomer checkout
-# above) deploys to https://attilathefun.github.io/isomer/. NOT run by any
-# build or test: publishing is deliberate (docs/playground_web.md,
-# "Publishing").
+# Packages the Playground's web site as playground-site.tar.gz, the asset a
+# GitHub release carries and .github/workflows/pages.yml deploys to
+# https://attilathefun.github.io/playground/. NOT run by any build or test:
+# publishing is deliberate (docs/playground_web.md, "Publishing"); the Build
+# workflow's alpha job runs it for a draft release, and the proof for its
+# web pictures.
 #
 #   tools/playground/package_site.sh --toolchain-from <dir> [--out <file>] [--slice <dir>]
 #
@@ -14,12 +15,12 @@
 #                     fresh compiler build. Its compiler, linker and macro
 #                     plugins don't depend on Isomer and are reused as they
 #                     are; everything that does is staged fresh from this tree.
-#   --out             the archive (default: isomer-site.tar.gz in the
+#   --out             the archive (default: playground-site.tar.gz in the
 #                     current directory)
 #   --slice           the Swift SDK's wasm32-unknown-wasip1 slice (default:
-#                     the one in the examples' Bazel output base)
+#                     the one in this module's Bazel output base)
 #
-# What it does, from examples/playground/:
+# What it does, from this repository's root (wherever it is run from):
 #   1. `bazel build -c opt` the whole site (//web/splash_web_application:site:
 #      the front page at the root, the Playground under playground/; -c opt
 #      because iOS Safari overflows its stack on an -Onone page) and the SDK
@@ -35,12 +36,13 @@
 #   4. Writes the archive: the site at its root, with a .nojekyll, every file
 #      under 95 MB (stage_bundle.sh splits a binary that would not be).
 #
-# Then: `gh release upload <tag> isomer-site.tar.gz` (before the release is
-# published, or run pages.yml by hand after). macOS only, as stage_bundle.sh.
+# Then, by hand: `gh release upload <tag> playground-site.tar.gz` (before
+# the release is published, or run pages.yml by hand after). On a Mac or in
+# CI's Linux container.
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(cd "$HERE/../.." && pwd)"   # the playground module
-FROM=""; OUT="$PWD/isomer-site.tar.gz"; SLICE=""
+FROM=""; OUT="$PWD/playground-site.tar.gz"; SLICE=""
 while [ $# -gt 0 ]; do
     case "$1" in
         --toolchain-from) FROM="$2"; shift 2;;

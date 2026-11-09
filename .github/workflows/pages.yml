@@ -1,0 +1,90 @@
+# Deploys the Playground's web site to GitHub Pages
+# (https://attilathefun.github.io/playground/): the front page at the root,
+# the web Playground under playground/ and its in-browser Swift toolchain
+# under playground/toolchain/ (docs/playground_web.md, "Publishing").
+#
+# The site is not built here. It is the `playground-site.tar.gz` asset of a
+# GitHub release, made by tools/playground/package_site.sh (a Bazel `-c opt`
+# build of //web/splash_web_application:site plus the staged toolchain) in
+# the Build workflow's alpha job, which attaches it to the draft release.
+# Compiled output never goes into git: the site is over 100 MB with the
+# compiler, and building it needs the compiler built by
+# tools/browser_toolchain, which no runner has (CI stages it from OS
+# Server's files).
+#
+# In CI's Linux container, as every job but the GUI tests (OS Server's
+# single-use containers), with curl and tar alone: the asset
+# comes from the release's public download URL (no gh), and the Pages
+# artifact is made here, the plain tar upload-pages-artifact would make.
+# The site is already dereferenced (package_site.sh), so tar archives it as
+# is. As isomer's pages.yml, which deployed this site until 0.47.
+#
+# Runs when a release is published (alpha attaches the asset to the draft
+# before), or by hand for any release that carries one:
+#   gh workflow run pages.yml [-f tag=<tag>]     (no tag: the latest release)
+#
+# Settings this needs: Pages' source is "GitHub Actions", and the
+# github-pages environment lets tags deploy (Settings > Environments >
+# github-pages: add a tag rule such as `v*` beside `main`): a release's run
+# is on its tag, which the environment's default rule refuses.
+name: Deploy Pages
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release whose playground-site.tar.gz to deploy (empty for the latest release)
+        required: false
+        default: ""
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+# One deployment at a time; a newer one waits for the one in progress.
+concurrency:
+  group: pages
+jobs:
+  deploy:
+    runs-on: [self-hosted, playground-jit]
+    timeout-minutes: 30
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      # In the job's temporary folder, which the runner empties after the
+      # job: a self-hosted runner's workspace outlives it.
+      - name: Download the release's site
+        env:
+          # The published release's tag, or the input; none means the
+          # latest release.
+          TAG: ${{ github.event.release.tag_name || inputs.tag }}
+        run: |
+          if [ -n "$TAG" ]; then path="download/$TAG"; else path="latest/download"; fi
+          cd "$RUNNER_TEMP"
+          curl -fsSL --retry 3 -o playground-site.tar.gz "https://github.com/$GITHUB_REPOSITORY/releases/$path/playground-site.tar.gz"
+          mkdir site
+          tar -xzf playground-site.tar.gz -C site
+          # package_site.sh's layout: the front page at the root, the
+          # Playground under playground/ with its compiler.
+          test -f site/index.html && test -f site/playground/index.html && test -f site/playground/toolchain/manifest.json
+      # What upload-pages-artifact makes: the site as one plain tar,
+      # artifact.tar, in an artifact named github-pages, which deploy-pages
+      # takes. On a Mac (run by hand there), COPYFILE_DISABLE and
+      # --no-mac-metadata keep its extended attributes (`._` files) out.
+      - name: Archive the site
+        run: |
+          if tar --version 2> /dev/null | grep -q GNU; then
+            tar -cf "$RUNNER_TEMP/artifact.tar" -C "$RUNNER_TEMP/site" --exclude=.git --exclude=.github .
+          else
+            COPYFILE_DISABLE=1 tar --no-mac-metadata -cf "$RUNNER_TEMP/artifact.tar" \
+              -C "$RUNNER_TEMP/site" --exclude=.git --exclude=.github .
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: github-pages
+          path: ${{ runner.temp }}/artifact.tar
+          retention-days: 1
+          if-no-files-found: error
+      - id: deployment
+        uses: actions/deploy-pages@v4

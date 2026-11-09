@@ -141,7 +141,7 @@ Isomer is, how it works — one render tree and pluggable renderers
 (component systems vs the self-drawing SwiftGPU renderer), compiled or
 WebAssembly, pluggable GPUs, dependency injection — with the example apps'
 own screens (`Counter.swift`, `Game2048.swift`, `Pokedex.swift` from
-`shared/sample_sources`, the examples' `shared/example_application`,
+`shared/sample_sources`, isomer's examples' `shared/example_application`,
 compiled into the splash) embedded INLINE as
 subviews in `DemoCard`s: a 400×560 rounded, bordered, shadowed frame you
 use in place and scroll past, with a pencil that opens that example's
@@ -202,22 +202,25 @@ still to be confirmed then.
 
 ## Publishing
 
-The site is https://attilathefun.github.io/isomer/ (the Playground at
-`playground/`), deployed to GitHub Pages by isomer's
-`.github/workflows/pages.yml` from an asset of a GitHub release. No compiled
-output goes into git: the site is about 115 MB with the in-browser
-toolchain, and the compiler in it is built by tools/browser_toolchain from a
-Swift/LLVM workspace no CI runner has. So the site is built and packaged
-locally and attached to the release:
+The site is https://attilathefun.github.io/playground/ (the Playground at
+`playground/`), deployed to GitHub Pages by this repository's
+`.github/workflows/pages.yml` from an asset of a GitHub release (isomer's,
+at https://attilathefun.github.io/isomer/, until 0.47). No compiled output
+goes into git: the site is about 115 MB with the in-browser toolchain, and
+the compiler in it is built by tools/browser_toolchain from a Swift/LLVM
+workspace no CI runner has. So the compiler is staged from OS Server's files
+(tools/ci/stage_playground_compilers.sh web), and the Build workflow's alpha
+job packages the site and attaches it to the draft release it makes. By
+hand, the same:
 
     tools/playground/package_site.sh --toolchain-from <staged toolchain dir>
-    gh release upload <tag> isomer-site.tar.gz
+    gh release upload <tag> playground-site.tar.gz
 
 `package_site.sh` builds `-c opt //web/splash_web_application:site` and
 `//apple/playground_ios_application:playground_sdk`, stages the toolchain
 with `stage_bundle.sh` against that SDK and the Swift SDK's
 `wasm32-unknown-wasip1` slice (from the module's output base), puts what the
-page fetches in `playground/toolchain/`, and writes `isomer-site.tar.gz`:
+page fetches in `playground/toolchain/`, and writes `playground-site.tar.gz`:
 the site at the archive's root, dereferenced (Bazel's site is a symlink
 tree), with a `.nojekyll`, every file under 95 MB. The compiler, the linker
 and the macro plugins don't depend on Isomer, so they come from an earlier
@@ -229,16 +232,16 @@ offsets). The archive is about 90 MB; its largest file is
 `swift-frontend.wasm.gz` (33 MB).
 
 Publishing the release runs pages.yml, which downloads the release's
-`isomer-site.tar.gz`, unpacks it and deploys it through Actions. Attach the
-archive while the release is still a draft; for a release published before
+`playground-site.tar.gz`, unpacks it and deploys it through Actions. The
+archive is attached while the release is still a draft (alpha does); for a release published before
 it (or to redeploy one) run the workflow by hand: `gh workflow run pages.yml
 -f tag=<tag>` (no tag: the latest release). The repository needs Pages'
 source set to "GitHub Actions", and a tag rule (`v*`) on the `github-pages`
 environment: a release's run is on its tag, and the environment's default
 rule lets only `main` deploy.
 
-Every URL in the site is relative, so it runs under Pages' `/isomer/`
-prefix (or any other). Verified 2026-10-19 by serving the unpacked archive
+Every URL in the site is relative, so it runs under Pages' `/playground/`
+prefix (or any other: it was `/isomer/` until 0.47). Verified 2026-10-19 by serving the unpacked archive
 under `/isomer/` from a static server and driving it with `cdp_eval.js`
 (Chrome, a fresh profile): the front page renders; in the Playground the
 in-browser toolchain is ready 1 s after the page loads, the Counter compiles

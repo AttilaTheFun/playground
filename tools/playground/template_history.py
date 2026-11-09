@@ -4,20 +4,25 @@
 A project made from a template and never edited still holds that template's
 source as it was then. To bring such projects to the current template (and
 leave edited ones alone), the apps compare a project's App.swift with every
-version of every template: this script rebuilds them from isomer's git
-history — playground/ since the Playground came back (0.35), and the
-examples before it moved out of them (0.15) — and writes their FNV-1a 64
-fingerprints to shared/app/TemplateHistory.swift. Between 0.15 and
-0.35 the Playground was a repository of its own, whose history is not in
-isomer's: the versions it shipped are the file's own entries, which the
-script keeps (a fingerprint, once shipped, is never dropped).
+version of every template: this script rebuilds them from git history —
+this repository's own (the Playground's since 0.35, at the root since 0.47:
+its commits from isomer were brought here with it), then isomer's, for the
+examples before the Playground first moved out of them (0.15) and the
+paths it had in isomer — and writes their FNV-1a 64 fingerprints to
+shared/app/TemplateHistory.swift. Between 0.15 and 0.35 the Playground was
+a repository of its own, whose history is in neither: the versions it
+shipped are the file's own entries, which the script keeps (a fingerprint,
+once shipped, is never dropped).
 
 Each version is assembled exactly as its commit did: that commit's
 samples.bzl is run (its `native.genrule` captured) over that commit's
 playground_sample() calls and sources, and the genrule's shell command is
 run on them. "This website" (Splash.swift) is the file itself.
 
-    tools/playground/template_history.py [--isomer <the isomer checkout>]
+    tools/playground/template_history.py [--isomer <an isomer checkout>]
+
+(--isomer: default isomer beside this checkout; without one, this
+repository's history and the file's entries alone.)
 
 Run it again whenever a template changes, once the change is committed (it
 reads commits, not the working tree).
@@ -30,6 +35,7 @@ OUT = os.path.join(ROOT, "shared", "app", "TemplateHistory.swift")
 # (repository, module root inside it, the iOS app's package, the splash page).
 def eras(isomer):
     return [
+        (ROOT, "", "apple/playground_ios_application", "web/splash_web_application/Splash.swift"),
         (isomer, "playground/", "apple/playground_ios_application", "web/splash_web_application/Splash.swift"),
         (isomer, "examples/", "apple/playground_ios_application", "web/splash_web_application/Splash.swift"),
         (isomer, "", "examples/apple/playground_ios_application", "examples/web/splash_web_application/Splash.swift"),
@@ -147,7 +153,7 @@ def history(isomer):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--isomer", default=os.path.dirname(os.path.dirname(ROOT)))
+    parser.add_argument("--isomer", default=os.path.join(os.path.dirname(ROOT), "isomer"))
     args = parser.parse_args()
     shipped = recorded()
     shipped.update({value: name for value, (name, _) in history(args.isomer).items()})

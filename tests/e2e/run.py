@@ -35,8 +35,9 @@ ios      Builds the simulator app (the embedded compiler when it is staged),
          template check, on projects from before the store kept hashes; then
          compiles every project with the app's compiler (ISO_PLAYGROUND_AUTORUN
          =all; the host toolchain, as the simulator has no embedded one).
-         Driven by Isomer's XCUITest driver (ISOMER, default the parent
-         checkout: examples/tests/safari_probe).
+         Driven by Isomer's XCUITest driver (an isomer checkout's
+         examples/tests/safari_probe: ISOMER, default isomer beside this
+         checkout).
 
 Neither touches a phone unless ANDROID_SERIAL names one. Exit status 1 when
 anything failed.
@@ -51,12 +52,14 @@ UI test; a web road's screen is the page as headless Chrome showed it).
 """
 import argparse, json, os, re, shutil, signal, subprocess, sys, time
 
-# The Playground (examples/playground/ in the isomer checkout).
+# The Playground: this repository, its Bazel module (Bazel's output paths
+# are under it).
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-# The examples workspace the Playground is part of (Bazel's output paths are
-# under it), and the isomer checkout around that.
-WORKSPACE = os.path.dirname(ROOT)
-ISOMER = os.environ.get("ISOMER", os.path.dirname(WORKSPACE))
+WORKSPACE = ROOT
+# An isomer checkout: its examples' XCUITest driver, and the Playground's
+# history before 0.35 (tools/playground/template_history.py). ISOMER, else
+# isomer beside this checkout.
+ISOMER = os.environ.get("ISOMER", os.path.join(os.path.dirname(ROOT), "isomer"))
 ANDROID_PACKAGE = "com.LoganShire.IsomerPlayground"
 IOS_BUNDLE = "com.LoganShire.IsomerPlayground"
 SIMULATOR_TYPE = "iPhone"

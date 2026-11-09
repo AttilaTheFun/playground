@@ -7,28 +7,110 @@
 #   self-hosted runner never runs a fork's code): every app built in one
 #   Linux container on OS Server's on-demand runners (tools/ci/
 #   container_build.sh pr: the iPhone's, the Mac's, the web's, Android's and
-#   Linux's, the Apple ones with rules_applecross), reading OS Server's Bazel
-#   cache and never writing it. The required check. A newer push cancels its
-#   run.
+#   Linux's, the Apple ones with rules_applecross), then the tests that run
+#   without a GUI (the sites' import checks), reading OS Server's Bazel
+#   cache and never writing it, and leasing nothing. The required check. A
+#   newer push cancels its run.
 # - populate (each commit on main): the same build of the merged tree, the
-#   one job that writes OS Server's Bazel cache.
-#
-# By hand (verify, prerelease, release: the GUI tests, the proof, the
-# Alphas and the draft release) follows in the next change.
-
+#   one job that writes OS Server's Bazel cache (OS Server's ci.populate
+#   names it), and what a release builds beside it (the published apps as
+#   alpha builds them, and the proof's apps), so a later pull request's
+#   build and a release's jobs are mostly hits.
+# - By hand (workflow_dispatch, `run:`):
+#   - verify: every app built in the container and the tests there (the
+#     Playground has no GUI tests a runner runs yet: tests/e2e and the
+#     iPhone's XCUITest probe drive a simulator and an emulator by hand);
+#     and beside it the proof: the Playground on every tier-1 platform,
+#     built in CI's container (where the Android one is pictured too, on an
+#     emulator leased from OS Server: its compiler is arm64's alone),
+#     pictured on GitHub's own machines (a private copy's on OS Server's),
+#     each picture compared with the previous release's, uploaded as the
+#     `proof` artifact Reviews reads (proof, proof-shoot, proof-compare;
+#     tools/ci/proof.sh). `kind: quick` takes the same screens, marked as a
+#     quick proof's. On a commit of main, or, to bisect a regression, on a
+#     branch pushed at an earlier one;
+#   - prerelease (main): alpha alone: its version asked of Applications
+#     Server, the Playground built for the iPhone and iPad (.ipa), the Mac
+#     (.zip) and Android (.apk) as Alphas and the web site packaged, the
+#     Mac app's icon checked, published (the server signs the Apple ones,
+#     and notarizes the Mac's) and attached to a draft release marked
+#     pre-release (tools/ci/draft_release.sh, attach_release.sh). No tests;
+#   - release (main): verify and the proof, then, only once they pass,
+#     alpha, and a draft release proposed for release, naming this run;
+#   - adhoc (a branch other than main or a release branch): the apps built
+#     as an AdHoc build, checked and published, how a pull request's build
+#     reaches a phone.
+#   Every job runs in CI's Linux container but the GUI tests and the
+#   proof's pictures (proof-shoot), on GitHub's own macOS and Ubuntu VMs.
+#   Drafts are CI's: no agent publishes one or makes a tag.
+# - release (the owner publishes a proposed release in Reviews, which makes
+#   its v* tag): its commit checked to be main's and verified
+#   (tools/ci/verified.sh), its iPhone's and Mac's Alphas promoted to
+#   production by the server (nothing Apple rebuilt), Android's built for
+#   production and published, and the release given its assets: the signed
+#   builds (the iPhone's, the Mac's with its disk image, Android's, and
+#   builds.json, which Applications reads), the proof and the iPhone app for
+#   the simulator. pages.yml deploys its web site. A pre-release is never
+#   released so.
+# The signed builds of a proposal (its Alphas) and of a release (Production)
+# are attached to its GitHub release, as Applications lists only apps whose
+# builds are there (the private AttilaTheFun/applications'
+# docs/RELEASE_ASSETS.md: publish_from_ci.sh and promote_from_ci.sh
+# --download, then tools/ci/attach_release.sh). AdHoc builds never are.
+# No signing key, notary key or password here: the publishing jobs' OIDC
+# token says where their builds came from, and which commit's version they
+# are given (the private AttilaTheFun/applications' docs/CI.md).
 name: Build
-
 on:
-  pull_request:
   push:
+    # main's commits: populate.
     branches: [main]
-
-permissions:
-  contents: read
-
+  pull_request:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      run:
+        description: "What to run: verify, prerelease or release on main (verify on a branch to bisect); adhoc on another branch"
+        type: choice
+        options: [verify, prerelease, release, adhoc]
+        default: verify
+      kind:
+        description: The proof's kind
+        type: choice
+        options: [full, quick]
+        default: full
+      baseline_run:
+        description: A run whose proof to compare with (empty for the previous release's)
+        required: false
+        default: ""
+# A pull request's newer push (a rebase, an update with main) cancels its
+# branch's older run, whose result no longer counts. Every other run
+# (populate, a run by hand, a release) is a group of its own and never
+# cancelled, so a publish is never cut off halfway.
 concurrency:
   group: ${{ github.event_name == 'pull_request' && format('build-pr-{0}', github.head_ref) || format('build-{0}', github.run_id) }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+permissions:
+  contents: read
+# What the publishing jobs build, each with its own --config: the
+# Playground's iPhone and iPad app (a device build, signed ad hoc with a
+# placeholder profile by --config=ci_device, which the server signs again
+# with the bundle id's own), Mac app and Android app (its android_binary,
+# whose signed .apk is published), optimized, as they ship. Flags as
+# --name=value (tools/ci/container_build.sh package).
+# The compilers come staged from OS Server's files (each job's "The
+# Playground's compilers", tools/ci/stage_playground_compilers.sh): the
+# iPhone's links the device's in (--define=iso_playground_embedded=1, which
+# nothing else reads), the Mac's Resources take the Mac's staged one (built
+# in the Linux container, the building machine's compiler would be Linux's:
+# shared/compiler/toolchain.bzl), and the APK carries Android's.
+env:
+  PUBLISHED_APPS: >-
+    --config=ci_device --compilation_mode=opt --define=iso_playground_embedded=1
+    //apple/playground_ios_application:playground_ios_application
+    //apple/playground_macos_application:playground_macos_application
+    //android/playground_android_application:playground_android_application_apk
 
 jobs:
   container:
@@ -40,10 +122,13 @@ jobs:
       # The compilers the apps carry, from OS Server's files.
       - name: The Playground's compilers
         run: tools/ci/stage_playground_compilers.sh ios-simulator macos android web
-      - name: Every app, built
+      # Every app built in the Linux container, then every test that runs
+      # without a GUI.
+      - name: Every app built, and the tests without a GUI
         env:
           ISOMER_EXECUTION_LOGS: ${{ runner.temp }}/execution-logs
         run: exec tools/ci/container_build.sh pr
+      # What each invocation ran, to find what the cache misses.
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
@@ -61,14 +146,385 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - name: The Playground's compilers
-        run: tools/ci/stage_playground_compilers.sh ios-simulator macos android web
+        run: tools/ci/stage_playground_compilers.sh ios-device ios-simulator macos android web
       - name: Every app, built into the cache
         env:
           ISOMER_EXECUTION_LOGS: ${{ runner.temp }}/execution-logs
         run: exec tools/ci/container_build.sh all
+      # What a release builds, built here too, so its jobs find their actions
+      # in the cache: the published apps as alpha builds them (unstamped:
+      # only what the version reaches differs), and the proof's apps.
+      - name: The published apps, built into the cache
+        run: exec tools/ci/container_build.sh package .ci/packages --config=alpha $PUBLISHED_APPS
+      - name: The proof's apps, built into the cache
+        run: exec tools/ci/proof.sh --stage prebuild --apps "$RUNNER_TEMP/proof-apps" --review "$RUNNER_TEMP/proof-review"
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
           name: execution-logs
           path: ${{ runner.temp }}/execution-logs
           retention-days: 7
+
+  verify:
+    # By hand: every app built, and the tests in the container (those
+    # without a GUI: the Playground has no GUI tests a runner runs yet). Its
+    # result is what tools/ci/verified.sh and alpha ask for; the proof runs
+    # beside it (proof, proof-shoot, proof-compare).
+    if: github.event_name == 'workflow_dispatch' && (inputs.run == 'verify' || inputs.run == 'release')
+    runs-on: [self-hosted, playground-jit]
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v5
+      - name: The Playground's compilers
+        run: tools/ci/stage_playground_compilers.sh ios-simulator macos android web
+      - name: Build, and the tests in the build container
+        run: exec tools/ci/container_build.sh
+
+  proof:
+    # By hand, with verify: never a pull request's or a push's.
+    if: github.event_name == 'workflow_dispatch' && (inputs.run == 'verify' || inputs.run == 'release')
+    # OS Server's single-use Linux containers, as the build's: the apps built
+    # in it (rules_applecross for the Apple ones). A public repository's are
+    # then pictured on GitHub's own machines (the proof-* jobs below), but
+    # the Android Playground, pictured here on an emulator leased from OS
+    # Server (its compiler is arm64's alone; GitHub's runners with KVM are
+    # x86_64). A private copy pictures everything here, on machines it
+    # leases, the web in Chrome for Testing in this container.
+    runs-on: [self-hosted, playground-jit]
+    concurrency:
+      group: playground-proof-${{ github.ref }}
+      cancel-in-progress: false
+    timeout-minutes: 240
+    permissions:
+      contents: read
+      # The baseline: an earlier run's proof artifact.
+      actions: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      # The branch, for a pull request's head (its run's ref is GitHub's merge).
+      PROOF_REF: ${{ github.event.pull_request && format('refs/heads/{0}', github.head_ref) || github.ref }}
+      PROOF_KIND: ${{ inputs.kind || 'full' }}
+      PROOF_BASELINE_RUN: ${{ inputs.baseline_run }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # A pull request's own head, not GitHub's merge of it: the commit
+          # its proof is listed under. The whole history: the baseline is
+          # found along the base branch.
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - name: The app on every platform, pictured, and the proof
+        if: github.event.repository.private
+        # exec: the runner's cancel reaches the script's trap, which releases its leases.
+        run: exec tools/ci/proof.sh --kind "$PROOF_KIND" --proof "$RUNNER_TEMP/proof"
+      # The proof whether every picture came or not: a broken screen is what it's for.
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() && github.event.repository.private }}
+        with:
+          name: proof
+          path: ${{ runner.temp }}/proof
+          retention-days: 90
+      - name: The apps built, and the Android Playground pictured
+        if: ${{ !github.event.repository.private }}
+        run: exec tools/ci/proof.sh --stage build --kind "$PROOF_KIND" --apps "$RUNNER_TEMP/proof-apps" --review "$RUNNER_TEMP/proof-review"
+      - uses: actions/upload-artifact@v4
+        if: ${{ !github.event.repository.private }}
+        with:
+          name: proof-apps-ios
+          path: ${{ runner.temp }}/proof-apps/ios
+          retention-days: 1
+      - uses: actions/upload-artifact@v4
+        if: ${{ !github.event.repository.private }}
+        with:
+          name: proof-apps-macos
+          path: ${{ runner.temp }}/proof-apps/macos
+          retention-days: 1
+      - uses: actions/upload-artifact@v4
+        if: ${{ !github.event.repository.private }}
+        with:
+          name: proof-apps-web
+          path: ${{ runner.temp }}/proof-apps/web
+          retention-days: 1
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() && !github.event.repository.private }}
+        with:
+          name: proof-part-build
+          path: ${{ runner.temp }}/proof-review
+          retention-days: 7
+
+  # A public repository's proof, pictured on GitHub's own machines, free
+  # for one (tools/ci/proof.sh --stage shoot, tools/proof/proof.py --here):
+  # the iPhone (a simulator made for the run) and the Mac on `xcode-27`
+  # Macs, the web in Ubuntu's Chrome. (Android joins them on Ubuntu's KVM
+  # once its compiler has an x86_64 build: TODO.md.) Each its own part,
+  # whatever came back: a broken screen is what the proof is for.
+  proof-shoot:
+    needs: proof
+    if: ${{ !github.event.repository.private }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: ios
+            runner: xcode-27
+          - platform: macos
+            runner: xcode-27
+          - platform: web
+            runner: ubuntu-24.04
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: proof-apps-${{ matrix.platform }}
+          path: ${{ runner.temp }}/apps/${{ matrix.platform }}
+      - name: The app pictured here
+        env:
+          PROOF_KIND: ${{ inputs.kind || 'full' }}
+        run: >-
+          exec tools/ci/proof.sh --stage shoot --platform ${{ matrix.platform }} --kind "$PROOF_KIND"
+          --apps "$RUNNER_TEMP/apps" --review "$RUNNER_TEMP/review"
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: proof-part-${{ matrix.platform }}
+          path: ${{ runner.temp }}/review
+          retention-days: 7
+
+  # The parts compared with the baseline into the `proof` artifact Reviews
+  # reads, whichever came back (a missing platform's pictures fail it).
+  proof-compare:
+    needs: [proof, proof-shoot]
+    if: ${{ !cancelled() && !github.event.repository.private && needs.proof.result == 'success' }}
+    runs-on: [self-hosted, playground-jit]
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PROOF_REF: ${{ github.event.pull_request && format('refs/heads/{0}', github.head_ref) || github.ref }}
+      PROOF_KIND: ${{ inputs.kind || 'full' }}
+      PROOF_BASELINE_RUN: ${{ inputs.baseline_run }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: proof-part-*
+          path: ${{ runner.temp }}/parts
+      - name: The proof
+        run: exec tools/ci/proof.sh --stage compare --kind "$PROOF_KIND" --parts "$RUNNER_TEMP/parts" --proof "$RUNNER_TEMP/proof"
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: proof
+          path: ${{ runner.temp }}/proof
+          retention-days: 90
+
+  alpha:
+    # A proposal, by hand on main: prerelease alone, or release once verify
+    # and the proof have passed. In CI's Linux container, as every job but
+    # the GUI tests: its version asked of Applications Server, stamped in
+    # (tools/ci/stamp_apps.sh), the apps built (tools/ci/container_build.sh
+    # package) and the web site packaged, the Mac app's icon checked for the
+    # dark appearance (tools/ci/check_mac_icons.sh), the apps published
+    # (tools/ci/publish_from_ci.sh: the server signs the Apple ones and
+    # notarizes the Mac's), and the draft release made with the site
+    # (tools/ci/draft_release.sh), the builds as the server signed them
+    # attached to it (tools/ci/attach_release.sh: Playground-<version>-ios.ipa,
+    # -macos.zip, -android.apk and builds.json, which Applications lists).
+    needs: [verify, proof, proof-compare]
+    if: >-
+      always() && github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' &&
+      (inputs.run == 'prerelease' || (inputs.run == 'release' && needs.verify.result == 'success' &&
+      (github.event.repository.private || needs.proof-compare.result == 'success') &&
+      (!github.event.repository.private || needs.proof.result == 'success')))
+    runs-on: [self-hosted, playground-jit]
+    timeout-minutes: 180
+    permissions:
+      # The draft release.
+      contents: write
+      # The OIDC token Applications Server checks.
+      id-token: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # The draft's changes since the previous release.
+          fetch-depth: 0
+      # The builds' version, MAJOR.MINOR.N: the next of the committed line
+      # for the token's commit, from Applications Server (the same again for
+      # the same commit), stamped into the checkout before the build and
+      # never committed.
+      - name: Version
+        env:
+          APPLICATIONS_CI_CODE: ${{ secrets.APPLICATIONS_CI_CODE }}
+        run: tools/ci/stamp_apps.sh
+      # The compilers from OS Server's files, into the checkout's gitignored
+      # folders: the iPhone's (linked into the device's app), the Mac's (its
+      # Resources'), Android's (the APK's) and the browser's (the site's).
+      - name: The Playground's compilers
+        run: tools/ci/stage_playground_compilers.sh ios-device macos android web
+      # Bazel's tree a volume of the publishing jobs' own, kept between runs.
+      # exec: the runner's cancel reaches oss, which ends the build.
+      - name: Build
+        env:
+          ISOMER_CI_VOLUME: playground-ci-publish
+        run: exec tools/ci/container_build.sh package .ci/packages --config=alpha $PUBLISHED_APPS
+      # The web site the release carries, which pages.yml deploys when it's
+      # published: stamped with the version above, its in-browser compiler
+      # the one staged from OS Server's files.
+      - name: The site
+        run: >-
+          tools/playground/package_site.sh
+          --toolchain-from web/playground_web_application/staged_toolchain
+          --out "$GITHUB_WORKSPACE/.ci/playground-site.tar.gz"
+      # Nothing is published if the Mac app's icon has no dark appearance.
+      - name: The icon's dark appearance
+        run: tools/ci/check_mac_icons.sh .ci/packages
+      - name: Notes
+        run: git log -1 --format=%B > "$RUNNER_TEMP/notes.md"
+      - name: Publish
+        env:
+          APPLICATIONS_CI_CODE: ${{ secrets.APPLICATIONS_CI_CODE }}
+        run: >-
+          tools/ci/publish_from_ci.sh --notes-file "$RUNNER_TEMP/notes.md" --download "$RUNNER_TEMP/assets"
+          .ci/packages/*.zip .ci/packages/*.ipa .ci/packages/*.apk
+      - name: The draft release, its builds attached
+        env:
+          GH_TOKEN: ${{ github.token }}
+          KIND: ${{ inputs.run }}
+        run: |
+          version="$(sed -n '/CFBundleShortVersionString/{n;s/.*<string>\(.*\)<\/string>.*/\1/p;}' apple/playground_ios_application/Info.plist)"
+          tools/ci/draft_release.sh "$version" "$KIND" .ci/playground-site.tar.gz
+          tools/ci/attach_release.sh "v$version" "$RUNNER_TEMP/assets"
+
+  # AdHoc: a branch built by hand (workflow_dispatch with run: adhoc, on a
+  # branch that is neither main nor a release branch), the apps built as
+  # alpha's are with --config=adhoc and published; the server takes them as
+  # AdHoc builds, kept a week, never attached to a release. The build
+  # itself stops a tree that doesn't build.
+  adhoc:
+    if: >
+      github.event_name == 'workflow_dispatch' && inputs.run == 'adhoc' &&
+      github.ref != 'refs/heads/main' && !startsWith(github.ref, 'refs/heads/release-')
+    runs-on: [self-hosted, playground-jit]
+    timeout-minutes: 120
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v5
+      - name: Version
+        env:
+          APPLICATIONS_CI_CODE: ${{ secrets.APPLICATIONS_CI_CODE }}
+        run: tools/ci/stamp_apps.sh
+      - name: The Playground's compilers
+        run: tools/ci/stage_playground_compilers.sh ios-device macos android
+      - name: Build
+        env:
+          ISOMER_CI_VOLUME: playground-ci-publish
+        run: exec tools/ci/container_build.sh package .ci/packages --config=adhoc $PUBLISHED_APPS
+      - name: The icon's dark appearance
+        run: tools/ci/check_mac_icons.sh .ci/packages
+      # The branch's commit's message, from git: a run by hand has no
+      # head_commit in its event.
+      - name: Notes
+        run: git log -1 --format=%B > "$RUNNER_TEMP/notes.md"
+      - name: Publish
+        env:
+          APPLICATIONS_CI_CODE: ${{ secrets.APPLICATIONS_CI_CODE }}
+        run: tools/ci/publish_from_ci.sh --notes-file "$RUNNER_TEMP/notes.md" .ci/packages/*.zip .ci/packages/*.ipa .ci/packages/*.apk
+
+  # A release: when the owner publishes a GitHub release (its v0.47.N tag on
+  # a main commit, whose proof is in). Nothing Apple is rebuilt: the
+  # iPhone's and the Mac's Alphas main's CI published of that commit (the
+  # builds the owner tested) are promoted by Applications Server, stamped
+  # Production and signed again (tools/ci/promote_from_ci.sh). Android's is
+  # built for production and published, the server signing none. The signed
+  # builds, downloaded as each is promoted or published (--download:
+  # Playground-<version>-ios.ipa, -macos.zip, -macos.dmg, -android.apk and
+  # builds.json), replace the Alphas on the release
+  # (tools/ci/attach_release.sh); then its proof and the iPhone app for the
+  # simulator (tools/ci/release_extras.sh).
+  release:
+    if: github.event_name == 'release' && !github.event.release.prerelease
+    runs-on: [self-hosted, playground-jit]
+    timeout-minutes: 120
+    permissions:
+      # The release's assets.
+      contents: write
+      # Its commit's proof artifact.
+      actions: read
+      # The OIDC token Applications Server checks: a v* tag's, by a releaser.
+      id-token: write
+    steps:
+      # The tag's commit, with main's history beside it.
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      # A release is a main commit: a tag whose commit isn't on main stops here.
+      - name: The release is a main commit
+        run: git merge-base --is-ancestor HEAD origin/main || { echo "::error::$GITHUB_REF_NAME's commit is not on main"; exit 1; }
+      # No release of a commit not verified (its verify and proof passed, in a
+      # run by hand): checked before anything is promoted.
+      - name: The commit was verified
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: tools/ci/verified.sh "$GITHUB_SHA"
+      # Its proof, which the release carries.
+      - name: Its proof
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: tools/ci/release_extras.sh proof "$GITHUB_REF_NAME" .ci/release
+      # Untrusted text reaches the shell through env, never ${{ }} in run.
+      - name: Notes
+        env:
+          BODY: ${{ github.event.release.body }}
+        run: printf '%s\n' "$BODY" > "$RUNNER_TEMP/notes.md"
+      - name: The iPhone's and the Mac's, promoted
+        env:
+          APPLICATIONS_CI_CODE: ${{ secrets.APPLICATIONS_CI_CODE }}
+        run: tools/ci/promote_from_ci.sh --notes-file "$RUNNER_TEMP/notes.md" --download "$RUNNER_TEMP/assets"
+      # Android's and the simulator's builds: the version main's Alpha of
+      # the commit was (the server's answer for the token's commit).
+      - name: Version
+        env:
+          APPLICATIONS_CI_CODE: ${{ secrets.APPLICATIONS_CI_CODE }}
+        run: tools/ci/stamp_apps.sh
+      - name: The Playground's compilers
+        run: tools/ci/stage_playground_compilers.sh ios-simulator android
+      - name: Android's, for production
+        env:
+          ISOMER_CI_VOLUME: playground-ci-publish
+        run: >-
+          tools/ci/container_build.sh package .ci/android --config=prod --compilation_mode=opt
+          //android/playground_android_application:playground_android_application_apk
+      - name: Android's, published
+        env:
+          APPLICATIONS_CI_CODE: ${{ secrets.APPLICATIONS_CI_CODE }}
+        run: tools/ci/publish_from_ci.sh --notes-file "$RUNNER_TEMP/notes.md" --download "$RUNNER_TEMP/assets" .ci/android/*.apk
+      # The simulator's app with the compiler linked in, as the proof's
+      # (--define=iso_playground_embedded=1): without it the app builds but
+      # cannot compile a project.
+      - name: The iPhone's, for the simulator
+        env:
+          ISOMER_CI_VOLUME: playground-ci-publish
+        run: >-
+          tools/ci/container_build.sh package .ci/simulator --compilation_mode=opt --ios_multi_cpus=sim_arm64
+          --define=iso_playground_embedded=1
+          //apple/playground_ios_application:playground_ios_sim_application
+      # The signed builds, Production now, in place of the Alphas.
+      - name: The signed builds, attached
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: tools/ci/attach_release.sh "$GITHUB_REF_NAME" "$RUNNER_TEMP/assets"
+      - name: The proof and the simulator's app, attached
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: tools/ci/release_extras.sh upload "$GITHUB_REF_NAME" .ci/release .ci/simulator

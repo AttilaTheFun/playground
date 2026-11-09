@@ -131,7 +131,7 @@ over the chat, then either the run or a "Build Failed" sheet (wrapped,
 selectable diagnostics with a Copy button).
 
 ```sh
-bazel run //apple/playground_ios_application:run   # from examples/ (or here)
+bazel run //apple/playground_ios_application:run
 ```
 
 ## Projects and templates
@@ -139,7 +139,7 @@ bazel run //apple/playground_ios_application:run   # from examples/ (or here)
 A new project starts from a **template**: Blank (an App and a ContentView)
 or any bundled example — Counter, 2048, Meme Creator, Wikipedia, Hacker
 News, Pokédex. The examples are the example apps' sources
-(examples/shared/example_application), copied here
+(isomer's examples/shared/example_application), copied here
 (shared/sample_sources); `samples.bzl`'s `playground_sample`
 assembles each into one file at build time (a `@main` wrapper hosting the
 screen, imports stripped, plus the platform-services helpers and a `Bridge`
@@ -262,7 +262,7 @@ screen" and "Share link". Relaunching without a link returns to the main UI.
 
 ## How a user build works
 
-Two commands, mirroring bazel's own actions for the examples'
+Two commands, mirroring bazel's own actions for isomer's examples'
 `//wasm/hot_demo_feature` (mined from `aquery`):
 
 1. `swiftc -target wasm32-unknown-wasip1 -sdk <WASI.sdk> -resource-dir
@@ -372,8 +372,8 @@ Build failures present full-screen in a read-only, selectable, wrapping
 monospaced text view (`ReadOnlyCodeText`, a UITextView) with Done.
 
 RSPM alternatives, if a richer editor is wanted (all resolvable through the
-`swift_package` extension the way the examples' `proto_greeter` pulls
-SwiftProtobuf, or the examples' graph AgentUI):
+`swift_package` extension the way isomer's examples' `proto_greeter` pulls
+SwiftProtobuf, or this module's graph AgentUI):
 `twostraws/Sourceful` (SourceEditor: UITextView + Swift lexer + themes,
 closest to this built-in), `raspu/Highlightr` (highlight.js in
 JavaScriptCore, 180 languages), `mchakravarty/CodeEditorView` (SwiftUI,

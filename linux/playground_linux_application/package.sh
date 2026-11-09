@@ -1,10 +1,8 @@
 #!/usr/bin/env bash
 # Packages the Linux Playground as one directory a Linux desktop runs (its
-# Swift runtime included): run in the Linux build container after building,
-# from the playground module (isomer's tools/linux/build.sh --module
-# playground --after 'linux/playground_linux_application/package.sh <out>
-# <flags>' --out <path> <dir> <targets>). It lands in the container's home;
-# build.sh's --out brings it out.
+# Swift runtime included): run in a Linux container after building, from
+# this repository's root (tools/ci/proof.sh's, when the proof names Linux).
+# It lands in the container's home, and the caller brings it out.
 #
 #   <out>/playground              the app
 #   <out>/playground_wasm_loader  a build's window
