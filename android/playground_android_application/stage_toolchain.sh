@@ -13,7 +13,10 @@
 #                       (tools/browser_toolchain/stage_bundle.sh: resource dir,
 #                       sysroot, the Isomer modules and archives, manifest.json)
 #
-#   stage_toolchain.sh [--slice <wasip1 slice>]
+#   stage_toolchain.sh [--slice <wasip1 slice>] [--native-only]
+#
+# --native-only: toolchain/native* alone (a machine with the Android phases'
+# outputs and nothing of the browser toolchain's: a container's build).
 #
 # The slice defaults to one made of the iOS Playground's bundled SDK data.
 set -euo pipefail
@@ -32,14 +35,16 @@ case "$ARCH" in
     *) echo "ISO_ANDROID_ARCH is aarch64 or x86_64, not $ARCH" >&2; exit 1 ;;
 esac
 SLICE=""
+NATIVE_ONLY=""
 while [ $# -gt 0 ]; do
     case "$1" in
         --slice) SLICE="$2"; shift 2;;
+        --native-only) NATIVE_ONLY=1; shift;;
         *) echo "unknown argument $1" >&2; exit 2;;
     esac
 done
 [ -x "$TC/build/android$SUFFIX-swift/bin/swift-frontend" ] || { echo "run the Android toolchain phases first ($TC/build/android$SUFFIX-swift/bin/swift-frontend missing)" >&2; exit 1; }
-if [ -z "$SLICE" ]; then
+if [ -z "$SLICE" ] && [ -z "$NATIVE_ONLY" ]; then
     DATA="$ROOT/apple/playground_ios_application/embedded_toolchain/data"
     SLICE="$(mktemp -d)/slice"
     mkdir -p "$SLICE/swift.xctoolchain/usr/lib"
@@ -68,6 +73,7 @@ for lib in libswiftCore libswift_Concurrency libswift_Builtin_float libswift_mat
     cp "$TC/android-swift-resources$SUFFIX/android/$lib.so" "$NATIVE/"
 done
 cp "$PREBUILT/sysroot/usr/lib/$ARCH-linux-android/libc++_shared.so" "$NATIVE/"
+if [ -n "$NATIVE_ONLY" ]; then du -sh "$NATIVE"; echo "staged $NATIVE"; exit 0; fi
 
 # The SDK, the browser bundle's way (without the bundle blob itself).
 cd "$ROOT"   # the workspace, whose bazel-out the output paths are under

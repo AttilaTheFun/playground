@@ -19,11 +19,13 @@ fi
 "$NINJA" -C build/host-tblgen LLVMSupport LLVMDemangle LLVMBitstreamReader
 mkdir -p build/host-helpers native-tools
 FLAGS=(-std=c++17 -O2 -fno-rtti -DNDEBUG -Iswift/include -Illvm-project/llvm/include -Ibuild/host-tblgen/include)
-LIBS=(build/host-tblgen/lib/libLLVMSupport.a build/host-tblgen/lib/libLLVMDemangle.a build/host-tblgen/lib/libLLVMBitstreamReader.a -lz -lcurses)
-xcrun clang++ "${FLAGS[@]}" -c swift/lib/Localization/LocalizationFormat.cpp -o build/host-helpers/localization.o
-xcrun clang++ "${FLAGS[@]}" -c swift/lib/Basic/Assertions.cpp -o build/host-helpers/assertions.o
+# A Mac's clang and curses, or a Linux machine's clang and ncurses.
+if [ "$(uname -s)" = Darwin ]; then CXX=(xcrun clang++); CURSES=-lcurses; else CXX=(clang++); CURSES=-lncurses; fi
+LIBS=(build/host-tblgen/lib/libLLVMSupport.a build/host-tblgen/lib/libLLVMDemangle.a build/host-tblgen/lib/libLLVMBitstreamReader.a -lz "$CURSES")
+"${CXX[@]}" "${FLAGS[@]}" -c swift/lib/Localization/LocalizationFormat.cpp -o build/host-helpers/localization.o
+"${CXX[@]}" "${FLAGS[@]}" -c swift/lib/Basic/Assertions.cpp -o build/host-helpers/assertions.o
 for tool in swift-def-to-strings-converter swift-serialize-diagnostics swift-compatibility-symbols; do
-    xcrun clang++ "${FLAGS[@]}" swift/tools/$tool/$tool.cpp build/host-helpers/localization.o build/host-helpers/assertions.o "${LIBS[@]}" -o native-tools/$tool
+    "${CXX[@]}" "${FLAGS[@]}" swift/tools/$tool/$tool.cpp build/host-helpers/localization.o build/host-helpers/assertions.o "${LIBS[@]}" -o native-tools/$tool
 done
 for tool in "$BASE_TC"/*; do
     case "$(basename "$tool")" in swift-def-to-strings-converter | swift-serialize-diagnostics | swift-compatibility-symbols) continue ;; esac
