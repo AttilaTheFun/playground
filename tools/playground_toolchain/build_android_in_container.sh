@@ -1,8 +1,10 @@
 #!/bin/bash
 # The Android Playground's compiler for one architecture, built from source
 # in a Linux container (an OS Server lease: 12 CPUs, 32 GB and 120 GB of
-# disk did for x86_64), its every phase's outputs archived so that nothing
-# needs building twice: each archive is kept in OS Server's files, by
+# disk did for x86_64; `oss machine lease container --image=<agent image>
+# --cpus=12 --memory=32 --disk=120 --minutes=480`), its every phase's
+# outputs archived so that nothing needs building twice: each archive goes
+# into OS Server's storage from the lease and is kept in its files, by
 # SHA-256, as a hermetic input of the next build.
 #
 #   tools/playground_toolchain/build_android_in_container.sh <aarch64|x86_64> <out dir>
@@ -90,4 +92,14 @@ log "the natives the APK carries"
 "$ROOT/android/playground_android_application/stage_toolchain.sh" --native-only
 tar -C "$ROOT/android/playground_android_application/toolchain" -cf - "native$SUFFIX" | zstd -q -T0 -19 -o "$OUT/native-$ARCH.tar.zst"
 (cd "$OUT" && sha256sum *.tar.zst > SHA256SUMS && cat SHA256SUMS)
+# Into OS Server's storage from here, when this lease can reach it (`oss`
+# with a token or a grant's --url): kept seven days by SHA-256, until
+# `oss files add <sha256>` makes each a served file for good. Else they wait
+# in <out dir> for `oss machine download`.
+if command -v oss > /dev/null; then
+    for archive in "$OUT"/*.tar.zst; do
+        oss storage put "$archive" --name="playground-$(basename "$archive")" --ttl=7d ${OSS_GRANT_URL:+--url="$OSS_GRANT_URL"} ||
+            echo "oss storage put $(basename "$archive") failed: download it instead" >&2
+    done
+fi
 log "done"
