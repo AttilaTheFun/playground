@@ -10,7 +10,7 @@
 # Compiled output never goes into git: the site is over 100 MB with the
 # compiler, and building it needs the compiler built by
 # tools/browser_toolchain, which no runner has (CI stages it from Shireworks'
-#  files).
+# files).
 #
 # In CI's Linux container, as every job but the GUI tests (Shireworks'
 # single-use containers), with curl and tar alone: the asset
