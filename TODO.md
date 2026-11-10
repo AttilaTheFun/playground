@@ -76,14 +76,6 @@ it, at 0.47.)
   (swift_ffi in the SDK twice) before any test did. It should run in CI's
   container (the toolchain's Linux repository names) beside the sites'
   import checks (`tools/ci/container_build.sh`'s tests).
-- **x86_64 Android.** The compiler the Android Playground carries is
-  arm64's alone, so its proof is pictured on an emulator leased from Shireworks
-  , in the proof's build job, while GitHub's Ubuntu runners (KVM,
-  free for a public repository) run only x86_64 emulators. An x86_64 build
-  of the on-device compiler (tools/playground_toolchain), staged beside the
-  arm64 one, lets the Android proof run there (proof.sh --stage shoot
-  --platform android and tools/ci/hosted_android_emulator.sh are ready for
-  it). Planned with isomer 0.48.
 - **The Pokédex reads PokéAPI live.** Its pictures have held still so far.
 - **Android's 2048, 1 px higher at 0.41 (Swift 6.4.2).** In both of isomer's
   proofs of a6ceeb16 (quick and full), its content sits 1 px above

@@ -182,12 +182,11 @@ jobs:
     # By hand, with verify: never a pull request's or a push's.
     if: github.event_name == 'workflow_dispatch' && (inputs.run == 'verify' || inputs.run == 'release')
     # Shireworks' single-use Linux containers, as the build's: the apps built
-    # in it (rules_applecross for the Apple ones). A public repository's are
-    # then pictured on GitHub's own machines (the proof-* jobs below), but
-    # the Android Playground, pictured here on an emulator leased from Shireworks
-    # (its compiler is arm64's alone; GitHub's runners with KVM are
-    # x86_64). A private copy pictures everything here, on machines it
-    # leases, the web in Chrome for Testing in this container.
+    # in it (rules_applecross for the Apple ones; Android's for x86_64, its
+    # compiler's x86_64 build). A public repository's are then pictured on
+    # GitHub's own machines (the proof-* jobs below). A private copy
+    # pictures everything here, on machines it leases, the web in Chrome
+    # for Testing in this container.
     runs-on: [self-hosted, playground-jit]
     concurrency:
       group: playground-proof-${{ github.ref }}
@@ -214,7 +213,7 @@ jobs:
           name: proof
           path: ${{ runner.temp }}/proof
           retention-days: 90
-      - name: The apps built, and the Android Playground pictured
+      - name: The apps built
         if: ${{ !github.event.repository.private }}
         run: exec tools/ci/proof.sh --stage build --kind "$PROOF_KIND" --apps "$RUNNER_TEMP/proof-apps" --review "$RUNNER_TEMP/proof-review"
       - uses: actions/upload-artifact@v4
@@ -236,6 +235,12 @@ jobs:
           path: ${{ runner.temp }}/proof-apps/web
           retention-days: 1
       - uses: actions/upload-artifact@v4
+        if: ${{ !github.event.repository.private }}
+        with:
+          name: proof-apps-android
+          path: ${{ runner.temp }}/proof-apps/android
+          retention-days: 1
+      - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() && !github.event.repository.private }}
         with:
           name: proof-part-build
@@ -245,9 +250,9 @@ jobs:
   # A public repository's proof, pictured on GitHub's own machines, free
   # for one (tools/ci/proof.sh --stage shoot, tools/proof/proof.py --here):
   # the iPhone (a simulator made for the run) and the Mac on `xcode-27`
-  # Macs, the web in Ubuntu's Chrome. (Android joins them on Ubuntu's KVM
-  # once its compiler has an x86_64 build: TODO.md.) Each its own part,
-  # whatever came back: a broken screen is what the proof is for.
+  # Macs, Android on an emulator under Ubuntu's KVM (its compiler's x86_64
+  # build), the web in Ubuntu's Chrome. Each its own part, whatever came
+  # back: a broken screen is what the proof is for.
   proof-shoot:
     needs: proof
     if: ${{ !github.event.repository.private }}
@@ -259,6 +264,8 @@ jobs:
             runner: xcode-27
           - platform: macos
             runner: xcode-27
+          - platform: android
+            runner: ubuntu-24.04
           - platform: web
             runner: ubuntu-24.04
     runs-on: ${{ matrix.runner }}
