@@ -185,7 +185,7 @@ jobs:
     # in it (rules_applecross for the Apple ones). A public repository's are
     # then pictured on GitHub's own machines (the proof-* jobs below), but
     # the Android Playground, pictured here on an emulator leased from Shireworks
-    #  (its compiler is arm64's alone; GitHub's runners with KVM are
+    # (its compiler is arm64's alone; GitHub's runners with KVM are
     # x86_64). A private copy pictures everything here, on machines it
     # leases, the web in Chrome for Testing in this container.
     runs-on: [self-hosted, playground-jit]

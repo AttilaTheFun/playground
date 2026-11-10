@@ -51,12 +51,15 @@ trap 'rm -rf "$work"' EXIT
 # An archive from Shireworks' files: their URL from shireworks.sh, read with
 # the cache's read token (a netrc of this run's own: never on a command line).
 fetch() {
-    local url host
+    local url host token
     url="$("$ROOT/tools/ci/shireworks.sh" files-url "$1")"
     host="${url#*://}"
     host="${host%%[:/]*}"
-    if [ ! -s "$work/netrc" ]; then
-        (umask 077 && printf 'machine %s login bazel password %s\n' "$host" "$("$ROOT/tools/ci/shireworks.sh" cache-token)" > "$work/netrc")
+    # A line for each host the files come from, written once.
+    if ! grep -qs "^machine $host " "$work/netrc"; then
+        token="$("$ROOT/tools/ci/shireworks.sh" cache-token)" ||
+            { echo "::error::no read token for Shireworks' files (shireworks.sh cache-token)"; exit 1; }
+        (umask 077 && printf 'machine %s login bazel password %s\n' "$host" "$token" >> "$work/netrc")
     fi
     curl -fsSL --retry 3 --netrc-file "$work/netrc" -o "$2" "$url"
 }
