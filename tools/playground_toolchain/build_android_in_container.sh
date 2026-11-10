@@ -57,8 +57,10 @@ done
 
 log "the sources at $RELEASE"
 cd "$HERE"
-for repo in swift llvm-project swift-syntax cmark swift-experimental-string-processing; do
-    [ -d "$repo" ] || git clone -q --depth 1 --branch "$RELEASE" "https://github.com/swiftlang/$repo.git" "$repo"
+# Each folder and its repository: swift.org's cmark is swift-cmark.
+for pair in swift llvm-project swift-syntax cmark:swift-cmark swift-experimental-string-processing; do
+    folder="${pair%%:*}" repo="${pair#*:}"
+    [ -d "$folder" ] || git clone -q --depth 1 --branch "$RELEASE" "https://github.com/swiftlang/$repo.git" "$folder"
 done
 git -C swift apply --check ../swift-embedded-idempotent-init.patch 2> /dev/null && git -C swift apply ../swift-embedded-idempotent-init.patch
 git -C llvm-project apply --check ../llvm-signal-handler-reentry.patch 2> /dev/null && git -C llvm-project apply ../llvm-signal-handler-reentry.patch
