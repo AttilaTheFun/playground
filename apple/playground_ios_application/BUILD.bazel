@@ -67,6 +67,8 @@ assemble_directory(
         "//web/playground_web_application:swift_ffi_runtime_js": "swift_ffi_runtime.js",
         "//web/playground_web_application:app_bridge_js_files": "app_bridge.js",
         "@isomer//wasm/libraries/swift_ui:runtime/react_renderer.js": "runtime/react_renderer.js",
+        # The DOM core its components run on (isomer 0.49: no React).
+        "@isomer//wasm/libraries/swift_ui:runtime/dom_react.js": "runtime/dom_react.js",
         # The renderer's styling, a module it imports (isomer 0.48).
         "@isomer//wasm/libraries/swift_ui:runtime/render_style.js": "runtime/render_style.js",
         "@isomer//wasm/libraries/swift_ui:runtime/flat_tree.js": "runtime/flat_tree.js",
@@ -79,8 +81,6 @@ assemble_directory(
         "@isomer//wasm/libraries/swift_ui:runtime/haptics.js": "runtime/haptics.js",
         # Image sources the renderer resolves (decoded images, isomer 0.19).
         "@isomer//wasm/libraries/swift_ui:runtime/raster.js": "runtime/raster.js",
-        "@isomer//tools/wasm:react_umd_js": "runtime/react.production.min.js",
-        "@isomer//tools/wasm:react_dom_umd_js": "runtime/react-dom.production.min.js",
     },
 )
 
