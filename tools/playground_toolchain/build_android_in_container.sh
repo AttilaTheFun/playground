@@ -79,13 +79,21 @@ if [ ! -x build/host-tblgen/bin/clang-tblgen ]; then
     log "phase A2: the host helpers"; ./build_phase_a2_native_helpers.sh
     archive host-tools build/host-tblgen/bin build/host-tblgen/lib build/host-tblgen/include native-tools
 fi
-log "phase B: LLVM, clang and lld for Android $ARCH"; ./build_phase_b_android_llvm.sh
+# A phase that finished is not run again when the script is (its objects are
+# gone by then: ninja would build it all again): build/.done-<phase><suffix>.
+phase() {
+    local name="$1" what="$2"; shift 2
+    if [ -e "build/.done-$name$SUFFIX" ]; then log "phase $name: built already"; return; fi
+    log "phase $name: $what"; "$@"
+    touch "build/.done-$name$SUFFIX"
+}
+phase B "LLVM, clang and lld for Android $ARCH" ./build_phase_b_android_llvm.sh
 # Its objects now, before the Swift build needs the room: C2 links the
 # libraries alone.
 find "build/android$SUFFIX-llvm" -name '*.o' -delete
 log "phase B's objects deleted"
-log "phase C1: cmark"; ./build_phase_c1_android_cmark.sh
-log "phase C2: swift-frontend"; ./build_phase_c2_android_swift.sh
+phase C1 cmark ./build_phase_c1_android_cmark.sh
+phase C2 swift-frontend ./build_phase_c2_android_swift.sh
 archive "android-$ARCH-llvm" "build/android$SUFFIX-llvm"
 archive "android-$ARCH-cmark" "build/android$SUFFIX-cmark"
 archive "android-$ARCH-swift" "build/android$SUFFIX-swift" "android-swift-resources$SUFFIX" android-sysroot
