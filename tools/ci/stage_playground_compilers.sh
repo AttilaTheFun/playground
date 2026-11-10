@@ -1,7 +1,7 @@
 #!/bin/bash
-# The Playground's compilers that Bazel doesn't make, staged from OS
-# Server's files (by SHA-256, as the Apple SDK archive is: `oss files add`
-# on its Mac, then the SHA-256 changed here) into the checkout's gitignored
+# The Playground's compilers that Bazel doesn't make, staged from
+# Shireworks' files (by SHA-256, as the Apple SDK archive is: added to its
+# files by its maintainers, then the SHA-256 changed here) into the checkout's gitignored
 # folders, where the apps' BUILD files find them
 # (AGENTS.md, "The staged compilers"):
 #
@@ -32,8 +32,9 @@
 # publishing jobs the device's, the Mac's and Android's. A folder already
 # staged from the same archive is kept; one staged by hand (a checkout of an
 # agent's: no .sha256 in it, nor, for the iPhone's, in either platform's
-# folder) is kept as it is. Needs `oss` on the PATH, a client of the server
-# that has the files.
+# folder) is kept as it is. Takes them through Shireworks' API
+# (tools/ci/shireworks.sh: a CI job's SHIREWORKS_GRANT, or SHIREWORKS_SERVERS
+# with a key), with curl.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 IOS_SIMULATOR_TOOLCHAIN=1eb52eb470019b2ac3066a93955e562afe19d295e4b30585c73cd5892c048c4d
@@ -47,7 +48,20 @@ playground="$ROOT"
 work="$(mktemp -d "${RUNNER_TEMP:-/tmp}/playground-compilers.XXXXXX")"
 trap 'rm -rf "$work"' EXIT
 
-# An archive from OS Server's files, unpacked into <into>, which it makes
+# An archive from Shireworks' files: their URL from shireworks.sh, read with
+# the cache's read token (a netrc of this run's own: never on a command line).
+fetch() {
+    local url host
+    url="$("$ROOT/tools/ci/shireworks.sh" files-url "$1")"
+    host="${url#*://}"
+    host="${host%%[:/]*}"
+    if [ ! -s "$work/netrc" ]; then
+        (umask 077 && printf 'machine %s login bazel password %s\n' "$host" "$("$ROOT/tools/ci/shireworks.sh" cache-token)" > "$work/netrc")
+    fi
+    curl -fsSL --retry 3 --netrc-file "$work/netrc" -o "$2" "$url"
+}
+
+# An archive from Shireworks' files, unpacked into <into>, which it makes
 # <folder>. <hand> (default <folder>) with no .sha256 in it or its folders
 # was staged by hand, and is kept.
 stage() {
@@ -55,7 +69,7 @@ stage() {
     if [ "$(cat "$folder/.sha256" 2> /dev/null)" = "$sha" ]; then return 0; fi
     if [ -d "$hand" ] && [ -z "$(find "$hand" -maxdepth 2 -name .sha256 -print -quit)" ]; then return 0; fi
     rm -rf "$folder"
-    oss storage get "$sha" "$work/$sha.tar.gz" > /dev/null
+    fetch "$sha" "$work/$sha.tar.gz"
     [ "$(shasum -a 256 "$work/$sha.tar.gz" | cut -d' ' -f1)" = "$sha" ] || { echo "::error::$sha's bytes don't match it"; exit 1; }
     tar -xzf "$work/$sha.tar.gz" -C "$into"
     rm "$work/$sha.tar.gz"

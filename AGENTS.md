@@ -103,7 +103,7 @@ paths rewritten to the root; commits before 0.35 are isomer's alone).
   tools/ci/stage_playground_compilers.sh (`ios-simulator`, `ios-device`,
   `macos`, `android`, and `web`: the browser's compiler as stage_bundle.sh
   writes it, which package_site.sh --toolchain-from takes; a new archive is
-  `oss files add`ed on the server's Mac and its SHA-256 changed there). Windows has no such
+  added to Shireworks' files by its maintainers and its SHA-256 changed there). Windows has no such
   toolchain in rules_swift; its package takes the build VM's installed
   Swift's (tools/proof/proof.py does), with the wasm SDK's data
   and the Playground SDK from the Mac. Linux's lld wants Ubuntu 24.04's

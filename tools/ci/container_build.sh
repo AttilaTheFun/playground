@@ -1,8 +1,7 @@
 #!/bin/bash
-# CI's build of every platform in a Linux container, on a self-hosted
-# runner's Mac: a container leased from that Mac's Shireworks (`oss machine
-# run container --inside`), in the image a Visor session runs in, so CI
-# builds where an agent works. The Apple targets take Xcode 27.0's SDK
+# CI's build of every platform in a Linux container: the job's own (the
+# playground-jit runners, Shireworks' single-use containers of the image a
+# Visor session runs in), so CI builds where an agent works. The Apple targets take Xcode 27.0's SDK
 # archive and rules_applecross's ported tools from the same Shireworks server's
 # files (by SHA-256, with its cache's read token) through a downloader
 # config written here, and its Bazel reads that server's cache: no host is
@@ -27,11 +26,9 @@
 #
 #   ISOMER_EXECUTION_LOGS  a folder for Bazel's execution logs (compact),
 #                    to compare two runs' action keys when the cache misses
-#   OSS_FILES_HOST   the name the container reaches this Mac's Shireworks by
-#                    (default: this Mac's tailnet name, from Tailscale)
-#   ISOMER_CI_IMAGE  the image (default: Visor's agent image, tools/ci/agent_image)
-#   ISOMER_CI_VOLUME Bazel's tree, kept between builds (default: playground-ci;
-#                    `:keep`, so Shireworks keeps it when the lease ends)
+#   SHIREWORKS_FILES_HOST  the name Shireworks' files are reached by
+#                    (default: the server tools/ci/shireworks.sh files-url
+#                    names, from the job's SHIREWORKS_GRANT or SHIREWORKS_SERVERS)
 #
 # The Playground's compilers must be staged first
 # (tools/ci/stage_playground_compilers.sh): the apps carry them.
@@ -44,9 +41,7 @@
 # emulator: neither runs here.
 #
 # package (the publishing jobs', as AttilaTheFun/reviews' container_build.sh
-# has it): Bazel's tree is the container's (a volume), so what CI publishes
-# is copied out into the checkout, the one folder of the Mac's the
-# container sees, found by cquery with the build's own flags, from the
+# has it): what CI publishes is copied out into the checkout, found by cquery with the build's own flags, from the
 # execution root. Flags as --name=value (--compilation_mode=opt, not -c
 # opt): every argument that doesn't start with "-" is taken for a target.
 # An Android app's files are its signed .apk (published as signed by its
@@ -54,36 +49,30 @@
 # deploy jar; only the first is copied.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
-IMAGE="${ISOMER_CI_IMAGE:-$(cat "$ROOT/tools/ci/agent_image")}"
-VOLUME="${ISOMER_CI_VOLUME:-playground-ci}"
 SDK_SHA256="251c252f7f41bcd3e08655e49e182686682d705945f4a2807049b9051c606ebb"
 
-# In CI the job's own container builds (the playground-jit runners: Shireworks'
+# The job's own container builds (the playground-jit runners: Shireworks'
 # single-use Linux containers, its cache's read token in ~/.netrc and its
-# cache in ~/.bazelrc already), in place. On a Mac (Shireworks' own, whose
-# folders containers may mount) it leases one, as before.
-inside=""
-[ "$(uname -s)" = Darwin ] || inside=1
+# cache in ~/.bazelrc already), in place. Off CI, an agent's container (a
+# Visor session's) builds the same way; a Mac doesn't.
+[ "$(uname -s)" != Darwin ] || { echo "container_build.sh: runs in a Linux container (CI's, or an agent's)" >&2; exit 1; }
 
-host="${OSS_FILES_HOST:-}"
-if [ -z "$host" ] && [ -n "${OSS_SERVERS:-}" ]; then
-    # The first of the servers' addresses (a URL, or host:port).
-    host="${OSS_SERVERS%%[ ,]*}"
-    host="${host#*://}"
-    host="${host%%[:/]*}"
+# Where Shireworks' files are: the URL shireworks.sh gives a file (its server
+# and port), or SHIREWORKS_FILES_HOST's port 7490.
+if [ -n "${SHIREWORKS_FILES_HOST:-}" ]; then
+    files="http://$SHIREWORKS_FILES_HOST:7490/files/sha256"
+else
+    files="$("$ROOT/tools/ci/shireworks.sh" files-url "$SDK_SHA256")" ||
+        { echo "container_build.sh: no Shireworks to take files from: set SHIREWORKS_FILES_HOST (or SHIREWORKS_GRANT or SHIREWORKS_SERVERS)" >&2; exit 1; }
+    files="${files%/*}"
 fi
-if [ -z "$host" ] && [ -z "$inside" ]; then
-    tailscale=/Applications/Tailscale.app/Contents/MacOS/Tailscale
-    host="$("$tailscale" status --json | python3 -c 'import json, sys; print(json.load(sys.stdin)["Self"]["DNSName"].rstrip("."))')"
-fi
-[ -n "$host" ] || { echo "container_build.sh: no host for Shireworks' files: set OSS_FILES_HOST (or OSS_SERVERS)" >&2; exit 1; }
 
-# The placeholders in MODULE.bazel, to this Mac's Shireworks.
+# The placeholders in MODULE.bazel, to Shireworks' files.
 mkdir -p "$ROOT/.ci"
 cat > "$ROOT/.ci/downloader.cfg" <<EOF
-rewrite apple-sdks\.invalid/.* http://$host:7490/files/sha256/$SDK_SHA256
-rewrite ported-tools\.invalid/sha256/(.*) http://$host:7490/files/sha256/\$1
-rewrite windows-sdks\.invalid/sha256/(.*) http://$host:7490/files/sha256/\$1
+rewrite apple-sdks\.invalid/.* $files/$SDK_SHA256
+rewrite ported-tools\.invalid/sha256/(.*) $files/\$1
+rewrite windows-sdks\.invalid/sha256/(.*) $files/\$1
 EOF
 
 mode=build
@@ -115,8 +104,8 @@ elif [ $# -eq 0 ] || [ "$*" = all ] || [ "$*" = pr ]; then
 fi
 
 # In the container: the build and the tests without a GUI, or (package) the
-# build and the packages copied out, Bazel reading the cache (--cache writes
-# the container's ~/.bazelrc).
+# build and the packages copied out, Bazel reading the cache (the runner's
+# ~/.bazelrc names it).
 steps='
 root=$1 mode=$2 out=$3; shift 3
 cd "$root"
@@ -168,10 +157,4 @@ exit $built
 '
 
 cd "$ROOT"
-if [ -n "$inside" ]; then
-    exec bash -c "$steps" container_build "$ROOT" "$mode" "$out" "$@"
-fi
-exec oss machine run container --image="$IMAGE" --rosetta --cpus=6 --memory=16 \
-    --mount="$ROOT:$ROOT" --volume="$VOLUME:/var/cache/bazel:128:keep" \
-    --inside --cache="$host" -- \
-    bash -c "$steps" container_build "$ROOT" "$mode" "$out" "$@"
+exec bash -c "$steps" container_build "$ROOT" "$mode" "$out" "$@"
