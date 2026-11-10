@@ -62,8 +62,8 @@ The compilers are not in git; they are far too large. They are built once by
 `apple/playground_ios_application/build_embedded_toolchain.sh` and
 `android/playground_android_application/stage_toolchain.sh`. Without them the
 iOS and Android apps build but cannot compile; the READMEs in those tools
-directories are the instructions. CI stages the compilers it ships from OS
-Server's files (`tools/ci/stage_playground_compilers.sh`).
+directories are the instructions. CI stages the compilers it ships from Shireworks'
+ files (`tools/ci/stage_playground_compilers.sh`).
 
 ## Where things are
 

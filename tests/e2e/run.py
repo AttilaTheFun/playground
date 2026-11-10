@@ -11,7 +11,7 @@ lacked it though the source was right. Neither shows in a compile; both show
 the moment the page is loaded. So:
 
 android  Builds the APK the way it is installed (-c opt), installs it on an
-         emulator leased from oss (adb connected to it), or on the test
+         emulator leased from Shireworks (adb connected to it), or on the test
          phone ANDROID_SERIAL names (the root-only template check is skipped
          there), opens the 2048 project from the sidebar and
          - taps "Run on the web": the app compiles the project ON the
@@ -28,7 +28,7 @@ android  Builds the APK the way it is installed (-c opt), installs it on an
          app's files and relaunches: the first must take this build's
          template, the second keep its source (TemplateHistory).
 ios      Builds the simulator app (the embedded compiler when it is staged),
-         installs it on a simulator leased from oss, opens the Pokédex
+         installs it on a simulator leased from Shireworks, opens the Pokédex
          project from the sidebar and taps "Run on the web" in the app: the
          app compiles it in-process, and the page opens in the app's Safari view
          (WebKit, as on the phone) and must show the project; then the
@@ -50,7 +50,7 @@ portrait and in landscape (`<platform>-<orientation>`, snapshots), then each
 road of the run recorded, with its last screen (`<platform>-e2e-portrait`, a
 UI test; a web road's screen is the page as headless Chrome showed it).
 """
-import argparse, json, os, re, shutil, signal, subprocess, sys, time
+import argparse, json, os, re, shlex, shutil, signal, subprocess, sys, time
 
 # The Playground: this repository, its Bazel module (Bazel's output paths
 # are under it).
@@ -74,12 +74,21 @@ failures = []
 proof = None
 leases = []
 
-def oss_lease(platform):
-    """A machine of oss's (released at exit): its exports (OSS_ID, OSS_UDID, OSS_ADB…)."""
-    out = sh(["oss", "machine", "lease", platform, "--exports", "--minutes=120"]).stdout
-    env = dict(re.findall(r"(OSS_[A-Z_]+)='([^']*)'", out))
-    leases.append(env["OSS_ID"])
-    log(f"leased {platform} {env['OSS_ID']}")
+# Shireworks' API (tools/ci/shireworks.sh: SHIREWORKS_SERVERS with a key, or
+# a CI job's grant).
+SHIREWORKS = os.path.join(ROOT, "tools", "ci", "shireworks.sh")
+
+def lease(platform):
+    """A machine leased from Shireworks (released at exit): its exports
+    (SHIREWORKS_ID, SHIREWORKS_UDID, SHIREWORKS_ADB…)."""
+    out = sh([SHIREWORKS, "lease", platform, "--minutes=120"]).stdout
+    env = {}
+    for line in out.splitlines():
+        name, sep, value = line.strip().removeprefix("export ").partition("=")
+        if sep and name.startswith("SHIREWORKS_"):
+            env[name] = shlex.split(value)[0] if value else ""
+    leases.append(env["SHIREWORKS_ID"])
+    log(f"leased {platform} {env['SHIREWORKS_ID']}")
     return env
 
 def log(message): print(f"[e2e] {message}", flush=True)
@@ -208,8 +217,8 @@ def android():
     serial = os.environ.get("ANDROID_SERIAL")
     emulator = serial is None
     if emulator:
-        # An emulator of oss's, through this Mac's adb.
-        serial = oss_lease("android")["OSS_ADB"]
+        # An emulator of Shireworks', through this Mac's adb.
+        serial = lease("android")["SHIREWORKS_ADB"]
         sh([adb, "connect", serial])
     a = [adb, "-s", serial]
     started = None
@@ -436,8 +445,8 @@ def ios():
     if os.path.isdir(os.path.join(ROOT, "apple/playground_ios_application/embedded_toolchain/iphonesimulator/lib")):
         flags.append("--define=iso_playground_embedded=1")
     ipa = bazel_output("//apple/playground_ios_application", *flags, suffix=".ipa")
-    # A simulator of oss's (the server is this Mac: simctl reaches it).
-    udid, was_booted = oss_lease("ios")["OSS_UDID"], True
+    # A simulator of Shireworks' (the server is this Mac: simctl reaches it).
+    udid, was_booted = lease("ios")["SHIREWORKS_UDID"], True
     sh(["xcrun", "simctl", "bootstatus", udid, "-b"])
     folder = "/private/tmp/safari_probe"
     driver = None
@@ -598,7 +607,7 @@ if __name__ == "__main__":
         for target in args.targets or ["android", "ios"]:
             {"android": android, "ios": ios}[target]()
     finally:
-        for lease in leases:
-            sh(["oss", "machine", "release", lease], check_status=False)
+        for leased in leases:
+            sh([SHIREWORKS, "release", leased], check_status=False)
     log("FAILED: " + "; ".join(failures) if failures else "all passed")
     sys.exit(1 if failures else 0)

@@ -77,8 +77,8 @@ it, at 0.47.)
   container (the toolchain's Linux repository names) beside the sites'
   import checks (`tools/ci/container_build.sh`'s tests).
 - **x86_64 Android.** The compiler the Android Playground carries is
-  arm64's alone, so its proof is pictured on an emulator leased from OS
-  Server, in the proof's build job, while GitHub's Ubuntu runners (KVM,
+  arm64's alone, so its proof is pictured on an emulator leased from Shireworks
+  , in the proof's build job, while GitHub's Ubuntu runners (KVM,
   free for a public repository) run only x86_64 emulators. An x86_64 build
   of the on-device compiler (tools/playground_toolchain), staged beside the
   arm64 one, lets the Android proof run there (proof.sh --stage shoot
@@ -106,6 +106,6 @@ it, at 0.47.)
   scripts build the WASI compiler and `MacroPlugins.wasm`
   (ObservationMacros, SwiftMacros), and Android's prebuilt plugins are
   staged by `android/playground_android_application/stage_toolchain.sh`; a
-  toolchain bump means running them again by hand (and, for CI, `oss files
-  add` of the new archives and their SHA-256s in
+  toolchain bump means running them again by hand (and, for CI, the new
+  archives added to Shireworks' files and their SHA-256s in
   `tools/ci/stage_playground_compilers.sh`).

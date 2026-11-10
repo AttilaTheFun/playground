@@ -9,10 +9,10 @@
 # the Build workflow's alpha job, which attaches it to the draft release.
 # Compiled output never goes into git: the site is over 100 MB with the
 # compiler, and building it needs the compiler built by
-# tools/browser_toolchain, which no runner has (CI stages it from OS
-# Server's files).
+# tools/browser_toolchain, which no runner has (CI stages it from Shireworks'
+#  files).
 #
-# In CI's Linux container, as every job but the GUI tests (OS Server's
+# In CI's Linux container, as every job but the GUI tests (Shireworks'
 # single-use containers), with curl and tar alone: the asset
 # comes from the release's public download URL (no gh), and the Pages
 # artifact is made here, the plain tar upload-pages-artifact would make.

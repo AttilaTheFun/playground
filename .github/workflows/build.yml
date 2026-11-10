@@ -5,14 +5,14 @@
 #
 # - container (every pull request from a branch of this repository: a
 #   self-hosted runner never runs a fork's code): every app built in one
-#   Linux container on OS Server's on-demand runners (tools/ci/
+#   Linux container on Shireworks' on-demand runners (tools/ci/
 #   container_build.sh pr: the iPhone's, the Mac's, the web's, Android's and
 #   Linux's, the Apple ones with rules_applecross), then the tests that run
-#   without a GUI (the sites' import checks), reading OS Server's Bazel
+#   without a GUI (the sites' import checks), reading Shireworks' Bazel
 #   cache and never writing it, and leasing nothing. The required check. A
 #   newer push cancels its run.
 # - populate (each commit on main): the same build of the merged tree, the
-#   one job that writes OS Server's Bazel cache (OS Server's ci.populate
+#   one job that writes Shireworks' Bazel cache (Shireworks' ci.populate
 #   names it), and what a release builds beside it (the published apps as
 #   alpha builds them, and the proof's apps), so a later pull request's
 #   build and a release's jobs are mostly hits.
@@ -22,8 +22,8 @@
 #     iPhone's XCUITest probe drive a simulator and an emulator by hand);
 #     and beside it the proof: the Playground on every tier-1 platform,
 #     built in CI's container (where the Android one is pictured too, on an
-#     emulator leased from OS Server: its compiler is arm64's alone),
-#     pictured on GitHub's own machines (a private copy's on OS Server's),
+#     emulator leased from Shireworks: its compiler is arm64's alone),
+#     pictured on GitHub's own machines (a private copy's on Shireworks'),
 #     written in Reviews' format 2 (each picture an item under a stable id;
 #     Reviews compares it with the previous release's, not CI), uploaded
 #     as the `proof` artifact and attached to a release's draft as
@@ -97,7 +97,7 @@ permissions:
 # with the bundle id's own), Mac app and Android app (its android_binary,
 # whose signed .apk is published), optimized, as they ship. Flags as
 # --name=value (tools/ci/container_build.sh package).
-# The compilers come staged from OS Server's files (each job's "The
+# The compilers come staged from Shireworks' files (each job's "The
 # Playground's compilers", tools/ci/stage_playground_compilers.sh): the
 # iPhone's links the device's in (--define=iso_playground_embedded=1, which
 # nothing else reads), the Mac's Resources take the Mac's staged one (built
@@ -117,7 +117,7 @@ jobs:
     timeout-minutes: 180
     steps:
       - uses: actions/checkout@v5
-      # The compilers the apps carry, from OS Server's files.
+      # The compilers the apps carry, from Shireworks' files.
       - name: The Playground's compilers
         run: tools/ci/stage_playground_compilers.sh ios-simulator macos android web
       # Every app built in the Linux container, then every test that runs
@@ -136,7 +136,7 @@ jobs:
 
   populate:
     # Each commit on main: the merged tree built as container builds it,
-    # nothing run or published. OS Server grants this job alone the cache's
+    # nothing run or published. Shireworks grants this job alone the cache's
     # write (its ci.populate).
     if: github.event_name == 'push'
     runs-on: [self-hosted, playground-jit]
@@ -181,11 +181,11 @@ jobs:
   proof:
     # By hand, with verify: never a pull request's or a push's.
     if: github.event_name == 'workflow_dispatch' && (inputs.run == 'verify' || inputs.run == 'release')
-    # OS Server's single-use Linux containers, as the build's: the apps built
+    # Shireworks' single-use Linux containers, as the build's: the apps built
     # in it (rules_applecross for the Apple ones). A public repository's are
     # then pictured on GitHub's own machines (the proof-* jobs below), but
-    # the Android Playground, pictured here on an emulator leased from OS
-    # Server (its compiler is arm64's alone; GitHub's runners with KVM are
+    # the Android Playground, pictured here on an emulator leased from Shireworks
+    #  (its compiler is arm64's alone; GitHub's runners with KVM are
     # x86_64). A private copy pictures everything here, on machines it
     # leases, the web in Chrome for Testing in this container.
     runs-on: [self-hosted, playground-jit]
@@ -362,20 +362,17 @@ jobs:
         run: >-
           tools/ci/check_version_line.sh
           "$(sed -n '/CFBundleShortVersionString/{n;s/.*<string>\(.*\)<\/string>.*/\1/p;}' apple/playground_ios_application/Info.plist)"
-      # The compilers from OS Server's files, into the checkout's gitignored
+      # The compilers from Shireworks' files, into the checkout's gitignored
       # folders: the iPhone's (linked into the device's app), the Mac's (its
       # Resources'), Android's (the APK's) and the browser's (the site's).
       - name: The Playground's compilers
         run: tools/ci/stage_playground_compilers.sh ios-device macos android web
-      # Bazel's tree a volume of the publishing jobs' own, kept between runs.
-      # exec: the runner's cancel reaches oss, which ends the build.
+      # exec: the runner's cancel reaches the build.
       - name: Build
-        env:
-          ISOMER_CI_VOLUME: playground-ci-publish
         run: exec tools/ci/container_build.sh package .ci/packages --config=alpha $PUBLISHED_APPS
       # The web site the release carries, which pages.yml deploys when it's
       # published: stamped with the version above, its in-browser compiler
-      # the one staged from OS Server's files.
+      # the one staged from Shireworks' files.
       - name: The site
         run: >-
           tools/playground/package_site.sh
@@ -435,8 +432,6 @@ jobs:
       - name: The Playground's compilers
         run: tools/ci/stage_playground_compilers.sh ios-device macos android
       - name: Build
-        env:
-          ISOMER_CI_VOLUME: playground-ci-publish
         run: exec tools/ci/container_build.sh package .ci/packages --config=adhoc $PUBLISHED_APPS
       - name: The icon's dark appearance
         run: tools/ci/check_mac_icons.sh .ci/packages
@@ -503,8 +498,6 @@ jobs:
       - name: The Playground's compilers
         run: tools/ci/stage_playground_compilers.sh ios-simulator android
       - name: Android's, for production
-        env:
-          ISOMER_CI_VOLUME: playground-ci-publish
         run: >-
           tools/ci/container_build.sh package .ci/android --config=prod --compilation_mode=opt
           //android/playground_android_application:playground_android_application_apk
@@ -516,8 +509,6 @@ jobs:
       # (--define=iso_playground_embedded=1): without it the app builds but
       # cannot compile a project.
       - name: The iPhone's, for the simulator
-        env:
-          ISOMER_CI_VOLUME: playground-ci-publish
         run: >-
           tools/ci/container_build.sh package .ci/simulator --compilation_mode=opt --ios_multi_cpus=sim_arm64
           --define=iso_playground_embedded=1
