@@ -4,10 +4,9 @@
 # shoot --platform android): the runner's Android SDK's emulator, an x86_64
 # Android 15 (the AOSP image) shaped as Shireworks' android leases are
 # (1080×2400, 420 dpi), so its pictures and theirs compare, its status bar
-# held still by SystemUI's demo mode. Copied from isomer's. Unused until the
-# Android Playground's compiler has an x86_64 build (TODO.md, "x86_64
-# Android"): until then its proof is pictured on an emulator leased from Shireworks
-# , in the build stage. It boots, and stays running for the rest
+# held still by SystemUI's demo mode. Copied from isomer's. The Playground
+# it runs is the x86_64 build, whose compiler is
+# tools/playground_toolchain's x86_64 build. It boots, and stays running for the rest
 # of the job; its serial is written to <serial file>. (Not printed: a
 # caller's `$(…)` would wait for the emulator and adb's server, which keep
 # the output open, to end.)

@@ -20,18 +20,16 @@
 #
 #   --stage build --apps <dir> --review <dir>
 #       (CI's container) the app built for every platform into
-#       <apps>/<platform>/, and the Android one pictured here, on an emulator
-#       leased from Shireworks, into <review>: its compiler, built into the
-#       app, is arm64's alone, and GitHub's runners with KVM are x86_64
-#       (TODO.md, "x86_64 Android")
+#       <apps>/<platform>/, Android's for x86_64 (the compiler it carries
+#       built for x86_64, tools/playground_toolchain), for the Ubuntu
+#       runner's emulator
 #   --stage prebuild --apps <dir> --review <dir>
 #       (main's populate) the same builds, nothing pictured or leased, so a
 #       release's proof finds its actions in the cache
-#   --stage shoot --platform ios|macos|web --apps <dir> --review <dir>
+#   --stage shoot --platform ios|macos|android|web --apps <dir> --review <dir>
 #       (GitHub's runner: `xcode-27` for the iPhone and the Mac, Ubuntu for
-#       the web; android once its compiler has an x86_64 build) one
-#       platform's app pictured on that machine (proof.py --here), into
-#       <review>
+#       Android, on its KVM, and the web) one platform's app pictured on
+#       that machine (proof.py --here), into <review>
 #   --stage compare --parts <dir> --proof <dir>
 #       (CI's container) the stages' <review> folders, as subfolders of
 #       <parts>, written into the proof
@@ -185,32 +183,27 @@ compare() {
 }
 
 # --stage build and prebuild: the app built for every platform, for the
-# stages that picture it elsewhere (and Android's, pictured here).
+# stages that picture it elsewhere: Android's for x86_64, the Ubuntu
+# runner's emulator's ABI.
 build_apps() {
     echo "::group::The apps, built (tools/proof/proof.py --build-to)"
     background "$python" -u "$ROOT/tools/proof/proof.py" ios macos android web --build-to "$apps" --review "$review" \
-        --commit "$commit" --web-toolchain "$web_toolchain" || { echo "::error::the apps didn't build"; exit 1; }
+        --commit "$commit" --web-toolchain "$web_toolchain" --android-abi x86_64 ||
+        { echo "::error::the apps didn't build"; exit 1; }
     echo "::endgroup::"
     phase "built"
 }
 
-# --stage build: the apps built, and the Android Playground pictured here,
-# on an emulator leased from Shireworks (its compiler, built into the app, is
-# arm64's alone, and GitHub's runners with KVM are x86_64).
+# --stage build: the apps built, every one pictured elsewhere.
 build() {
     build_apps
-    echo "::group::The Android Playground, on an emulator leased from Shireworks"
-    background "$python" -u "$ROOT/tools/proof/proof.py" android --from "$apps" --review "$review" --commit "$commit" \
-        ${quick[@]+"${quick[@]}"} || { echo "::error::the Android Playground: a picture didn't come back"; exit 1; }
-    echo "::endgroup::"
-    phase "the Android Playground pictured"
 }
 
 # --stage shoot, before anything else: what the platform's machine needs.
 # GitHub's runners: Python's own (Pillow in a venv of the run's), Xcode
 # 27.2 for the simulator, the Mac's screen made Shireworks' slots' (its own
 # is 1024 by 768), its Chrome; Android's an emulator booted on the Ubuntu
-# runner's KVM, once the Playground has an x86_64 compiler to picture there.
+# runner's KVM (tools/ci/hosted_android_emulator.sh).
 shoot_setup() {
     echo "::group::This machine, for $platform's pictures"
     python3 -m venv "$work/venv"
@@ -284,8 +277,9 @@ elif [ -n "$inside" ]; then
     fi
     echo "::group::The container's tools"
     root_do() { if [ "$(id -u)" = 0 ]; then "$@"; else sudo "$@"; fi; }
-    # Python with Pillow for proof.py; what Chrome for Testing loads; unzip.
-    packages=(git python3 python3-pil unzip libnss3 libasound2t64 libxkbcommon0 libxcomposite1 libxdamage1 libxrandr2
+    # Python with Pillow for proof.py; what Chrome for Testing loads; unzip;
+    # zstd (the Android x86_64 compiler's archive).
+    packages=(git python3 python3-pil unzip zstd libnss3 libasound2t64 libxkbcommon0 libxcomposite1 libxdamage1 libxrandr2
               libpango-1.0-0 libcairo2 libcups2t64 libdrm2 libgbm1 fonts-dejavu-core)
     root_do env DEBIAN_FRONTEND=noninteractive apt-get install -y -q --no-install-recommends "${packages[@]}" > /dev/null ||
         { root_do apt-get update -qq > /dev/null &&
@@ -328,7 +322,7 @@ if stages all build prebuild; then
 echo "::group::The Playground's compilers"
 # The staged compilers from Shireworks' files, unpacked where the apps'
 # BUILD files find them (the checkout's gitignored folders).
-"$ROOT/tools/ci/stage_playground_compilers.sh" ios-simulator android macos web
+"$ROOT/tools/ci/stage_playground_compilers.sh" ios-simulator android android-x86_64 macos web
 web_toolchain="$ROOT/web/playground_web_application/staged_toolchain"
 [ -f "$web_toolchain/manifest.json" ] || { echo "::error::no browser compiler staged at $web_toolchain"; exit 1; }
 echo "::endgroup::"

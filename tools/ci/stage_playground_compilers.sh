@@ -18,7 +18,11 @@
 #                  of the building machine's (shared/compiler/toolchain.bzl),
 #                  as a Mac app built on Linux must
 #   android        android/playground_android_application/toolchain/: the
-#                  compiler the APK carries
+#                  compiler the APK carries (arm64's)
+#   android-x86_64 android/playground_android_application/toolchain/native-x86_64/:
+#                  the same compiler built for x86_64, for emulators on
+#                  x86_64 machines (GitHub's Ubuntu runners); after android,
+#                  whose folder it goes in
 #   web            web/playground_web_application/staged_toolchain/: the
 #                  browser's compiler, as stage_bundle.sh writes it
 #                  (manifest.json, bundle.bin.gz, the gzipped binaries), which
@@ -41,10 +45,13 @@ IOS_SIMULATOR_TOOLCHAIN=1eb52eb470019b2ac3066a93955e562afe19d295e4b30585c73cd589
 IOS_DEVICE_TOOLCHAIN=d864eaa5b9f259305bf19adc6a3584093c847df896624bb09bb7a9a1d84c1157
 MACOS_TOOLCHAIN=7141924e3dfcfbacf63751f2327f256a2d35050e13979665c8612f297629a54a
 ANDROID_TOOLCHAIN=c8feabf8c6f379f4da714b9d1ed7915bfdc2cf9d02c90465bafb05278581f8b4
+# tools/playground_toolchain/build_android_in_container.sh x86_64's
+# native-x86_64.tar.zst (2026-11-10, a Shireworks container).
+ANDROID_X86_64_TOOLCHAIN=8cd6f615a39c99f8baa9a5d12048f5efc9c1e4421937fe942eedba1f98c4b35d
 WEB_TOOLCHAIN=70d0bc49c7cb2cbb9b8aa93370a6154b0343ab84d02bdfbc38e8e2292c3e8b38
 playground="$ROOT"
 
-[ $# -gt 0 ] || { echo "usage: tools/ci/stage_playground_compilers.sh ios-simulator|ios-device|macos|android|web…" >&2; exit 2; }
+[ $# -gt 0 ] || { echo "usage: tools/ci/stage_playground_compilers.sh ios-simulator|ios-device|macos|android|android-x86_64|web…" >&2; exit 2; }
 work="$(mktemp -d "${RUNNER_TEMP:-/tmp}/playground-compilers.XXXXXX")"
 trap 'rm -rf "$work"' EXIT
 
@@ -72,10 +79,17 @@ stage() {
     if [ "$(cat "$folder/.sha256" 2> /dev/null)" = "$sha" ]; then return 0; fi
     if [ -d "$hand" ] && [ -z "$(find "$hand" -maxdepth 2 -name .sha256 -print -quit)" ]; then return 0; fi
     rm -rf "$folder"
-    fetch "$sha" "$work/$sha.tar.gz"
-    [ "$(shasum -a 256 "$work/$sha.tar.gz" | cut -d' ' -f1)" = "$sha" ] || { echo "::error::$sha's bytes don't match it"; exit 1; }
-    tar -xzf "$work/$sha.tar.gz" -C "$into"
-    rm "$work/$sha.tar.gz"
+    fetch "$sha" "$work/$sha.tar"
+    [ "$(shasum -a 256 "$work/$sha.tar" | cut -d' ' -f1)" = "$sha" ] || { echo "::error::$sha's bytes don't match it"; exit 1; }
+    mkdir -p "$into"
+    # gzip, or zstd (the Android compilers built in a container).
+    if [ "$(head -c 4 "$work/$sha.tar" | od -An -tx1 | tr -d ' ')" = 28b52ffd ]; then
+        command -v zstd > /dev/null || { echo "::error::zstd, for $sha's archive, isn't installed"; exit 1; }
+        zstd -dc "$work/$sha.tar" | tar -xf - -C "$into"
+    else
+        tar -xzf "$work/$sha.tar" -C "$into"
+    fi
+    rm "$work/$sha.tar"
     echo "$sha" > "$folder/.sha256"
 }
 
@@ -94,10 +108,13 @@ for name in "$@"; do
         android)
             stage "$ANDROID_TOOLCHAIN" "$playground/android/playground_android_application/toolchain" \
                 "$playground/android/playground_android_application" ;;
+        android-x86_64)
+            stage "$ANDROID_X86_64_TOOLCHAIN" "$playground/android/playground_android_application/toolchain/native-x86_64" \
+                "$playground/android/playground_android_application/toolchain" ;;
         web)
             stage "$WEB_TOOLCHAIN" "$playground/web/playground_web_application/staged_toolchain" \
                 "$playground/web/playground_web_application" ;;
-        *) echo "stage_playground_compilers: no compiler named $name (ios-simulator, ios-device, macos, android, web)" >&2; exit 2 ;;
+        *) echo "stage_playground_compilers: no compiler named $name (ios-simulator, ios-device, macos, android, android-x86_64, web)" >&2; exit 2 ;;
     esac
     echo "stage_playground_compilers: $name staged"
 done
