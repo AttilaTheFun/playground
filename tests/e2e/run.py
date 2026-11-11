@@ -493,10 +493,13 @@ def ios():
         sh(["xcrun", "simctl", "launch", udid, IOS_BUNDLE], env=environment)
 
         sh(f"mkdir -p {folder} && rm -f {folder}/cmd.txt {folder}/out.txt")
+        # Its output kept: when it doesn't start, its log's tail says why.
+        driver_log = open(f"{folder}/driver.log", "w")
         driver = subprocess.Popen(
             ["bazel", "test", "//tests/safari_probe:safari_driver", "--nocache_test_results", "--ios_multi_cpus=sim_arm64",
-             f"--test_arg=--destination=platform=ios_simulator,id={udid}", "--spawn_strategy=local", "--test_timeout=3600"],
-            cwd=probe, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+             f"--test_arg=--destination=platform=ios_simulator,id={udid}", "--spawn_strategy=local", "--test_timeout=3600",
+             "--test_output=streamed"],
+            cwd=probe, stdout=driver_log, stderr=subprocess.STDOUT)
 
         def drive(*commands, seconds=180):
             if os.path.exists(f"{folder}/out.txt"): os.remove(f"{folder}/out.txt")
@@ -507,9 +510,11 @@ def ios():
             return ""
 
         for _ in range(600):
-            if os.path.exists(f"{folder}/out.txt"): break
+            if os.path.exists(f"{folder}/out.txt") or driver.poll() is not None: break
             time.sleep(1)
-        if not check(os.path.exists(f"{folder}/out.txt"), "ios: the XCUITest driver started"): return
+        if not check(os.path.exists(f"{folder}/out.txt"), "ios: the XCUITest driver started"):
+            log("the driver's log, its end:\n" + "\n".join(open(f"{folder}/driver.log", errors="replace").read().splitlines()[-40:]))
+            return
         if proof:
             turned = {"landscape": False}
             def shoot(path):
