@@ -453,7 +453,9 @@ def ios():
     flags = ["--ios_multi_cpus=sim_arm64", "-c", "opt"]
     if os.path.isdir(os.path.join(ROOT, "apple/playground_ios_application/embedded_toolchain/iphonesimulator/lib")):
         flags.append("--define=iso_playground_embedded=1")
-    ipa = bazel_output("//apple/playground_ios_application", *flags, suffix=".ipa")
+    # The simulator-only app: no provisioning profile, so it builds where no
+    # team is set (a leased VM, CI) as on a Mac with one.
+    ipa = bazel_output("//apple/playground_ios_application:playground_ios_sim_application", *flags, suffix=".ipa")
     # A simulator of Shireworks' (the server is this Mac: simctl reaches it),
     # or, with E2E_IOS=local, one made here (a leased macOS VM running this
     # test: the MacBook itself builds nothing), deleted at the end.
