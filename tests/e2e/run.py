@@ -35,9 +35,15 @@ ios      Builds the simulator app (the embedded compiler when it is staged),
          template check, on projects from before the store kept hashes; then
          compiles every project with the app's compiler (ISO_PLAYGROUND_AUTORUN
          =all; the host toolchain, as the simulator has no embedded one).
+         Then runs the Counter under both of the iPhone's engines
+         (WasmKit, and WebKit's JIT in a web view out of sight: Settings'
+         Run) and checks its screen is the same under each, before and after
+         a tap, and the web view's timings show.
          Driven by Isomer's XCUITest driver (an isomer checkout's
          examples/tests/safari_probe: ISOMER, default isomer beside this
-         checkout).
+         checkout). E2E_IOS=local makes a simulator of its own instead of
+         leasing one: for a run inside a leased macOS VM, as on the MacBook
+         itself nothing is built.
 
 Neither touches a phone unless ANDROID_SERIAL names one. Exit status 1 when
 anything failed.
@@ -90,6 +96,9 @@ def lease(platform):
     leases.append(env["SHIREWORKS_ID"])
     log(f"leased {platform} {env['SHIREWORKS_ID']}")
     return env
+
+# Simulators made here (E2E_IOS=local), deleted when the run ends.
+made_here = []
 
 def log(message): print(f"[e2e] {message}", flush=True)
 
@@ -445,8 +454,21 @@ def ios():
     if os.path.isdir(os.path.join(ROOT, "apple/playground_ios_application/embedded_toolchain/iphonesimulator/lib")):
         flags.append("--define=iso_playground_embedded=1")
     ipa = bazel_output("//apple/playground_ios_application", *flags, suffix=".ipa")
-    # A simulator of Shireworks' (the server is this Mac: simctl reaches it).
-    udid, was_booted = lease("ios")["SHIREWORKS_UDID"], True
+    # A simulator of Shireworks' (the server is this Mac: simctl reaches it),
+    # or, with E2E_IOS=local, one made here (a leased macOS VM running this
+    # test: the MacBook itself builds nothing), deleted at the end.
+    if os.environ.get("E2E_IOS") == "local":
+        runtime = sh("xcrun simctl list runtimes iOS available | sed -n 's/^iOS .* - \\(com\\.apple\\.CoreSimulator\\.SimRuntime\\.iOS-[0-9-]*\\)$/\\1/p' | tail -1").stdout.strip()
+        udid = sh(["xcrun", "simctl", "create", "playground-e2e", "iPhone 17", runtime]).stdout.strip()
+        sh(["xcrun", "simctl", "boot", udid])
+        made_here.append(udid)
+        # As a Shireworks lease holds it still: the status bar at 9:41.
+        sh(["xcrun", "simctl", "status_bar", udid, "override", "--time", "9:41", "--dataNetwork", "wifi", "--wifiMode", "active",
+            "--wifiBars", "3", "--cellularMode", "active", "--cellularBars", "4", "--operatorName", "", "--batteryState", "charged",
+            "--batteryLevel", "100"], check_status=False)
+    else:
+        udid = lease("ios")["SHIREWORKS_UDID"]
+    was_booted = True
     sh(["xcrun", "simctl", "bootstatus", udid, "-b"])
     folder = "/private/tmp/safari_probe"
     driver = None
@@ -546,6 +568,32 @@ def ios():
         # store kept their template's hash: one still holding a template an
         # earlier build shipped takes this build's at launch; an edited one
         # keeps its source.
+        # The two engines (Settings' Run: WasmKit, or WebKit's JIT in a web view
+        # out of sight) run the same build to the same screen: the headless
+        # side doesn't depend on the engine. The Counter, run and tapped under
+        # each, its texts compared; the web view's run shows its timings.
+        road("both engines run the Counter alike")
+        texts = {}
+        for engine in ("wasmKit", "webView"):
+            sh(["xcrun", "simctl", "terminate", udid, IOS_BUNDLE], check_status=False)
+            sh(["xcrun", "simctl", "launch", udid, IOS_BUNDLE, "-playground.engine", engine], env=environment)
+            drive(f"bundle {IOS_BUNDLE}", "sleep 2", "tapany Counter", "sleep 1", "tapany Run", "sleep 25")
+            first = drive("apptree")
+            drive("tapany Tap me", "sleep 2")
+            tapped = drive("apptree")
+            labels = lambda tree: sorted(set(re.findall(r"StaticText[^\n]*?label: '([^']*)'", tree)))
+            texts[engine] = (labels(first), labels(tapped))
+            timing = [label for label in labels(tapped) if "first frame" in label]
+            check(bool(timing) and timing[0].startswith("Web view (JIT)" if engine == "webView" else "WasmKit"),
+                  f"ios: {engine} runs the Counter and shows its timings", str(timing)[:200])
+            check("Tapped 1 times" in labels(tapped), f"ios: a tap reaches the Counter under {engine}", str(labels(tapped))[:300])
+        same = lambda labels: [label for label in labels if "first frame" not in label]
+        check(same(texts["wasmKit"][0]) == same(texts["webView"][0]) and same(texts["wasmKit"][1]) == same(texts["webView"][1]),
+              "ios: the Counter's screen is the same under both engines, before and after a tap",
+              f"{texts['wasmKit']} vs {texts['webView']}"[:600])
+        sh(["xcrun", "simctl", "terminate", udid, IOS_BUNDLE], check_status=False)
+        sh(["xcrun", "simctl", "launch", udid, IOS_BUNDLE], env=environment)
+
         road("templates out of the box")
         sys.path.insert(0, os.path.join(ROOT, "tools", "playground"))
         import template_history
@@ -609,5 +657,8 @@ if __name__ == "__main__":
     finally:
         for leased in leases:
             sh([SHIREWORKS, "release", leased], check_status=False)
+        for udid in made_here:
+            sh(["xcrun", "simctl", "shutdown", udid], check_status=False)
+            sh(["xcrun", "simctl", "delete", udid], check_status=False)
     log("FAILED: " + "; ".join(failures) if failures else "all passed")
     sys.exit(1 if failures else 0)
