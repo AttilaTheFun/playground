@@ -611,7 +611,7 @@ def ios():
             trees[engine] = drive("apptree")
             drive(f"shot 2048-{engine}")
         laid_out = lambda tree: sorted(set(
-            (label, frame) for frame, label in re.findall(r"StaticText, (\{\{[^}]*\}, \{[^}]*\}\}).*?label: '([^']*)'", tree)
+            (label, frame) for frame, label in re.findall(r"StaticText, 0x[0-9a-f]+, (\{\{[^}]*\}, \{[^}]*\}\})[^\n]*?label: '([^']*)'", tree)
             if "first frame" not in label))
         wasm_kit, web_view = laid_out(trees["wasmKit"]), laid_out(trees["webView"])
         if not check(bool(wasm_kit) and wasm_kit == web_view, "ios: 2048's texts are laid out the same under both engines",
