@@ -48,6 +48,14 @@ Key facts discovered building this (also in docs/playground.md):
 
 ## Patches
 
+- `swift-6.4.2-ios-port.patch` and `llvm-6.4.2-ios-port.patch`: the whole
+  of the swift and llvm-project worktrees' changes at `swift-6.4.2-RELEASE`
+  that the compilers were last built from (2026-11-06), saved from that
+  workspace before it was removed: what porting the frontend and lld to
+  iOS and Android took (CMake gates, the task queue without posix_spawn,
+  `PointerIntPairCompat.h`, LLVM's Unix support), with the two fixes below
+  among them. Apply them to fresh worktrees at the tag (`git apply`); the
+  two below are the parts with a story of their own.
 - `swift-embedded-idempotent-init.patch` — repeated in-process
   `swift::mainEntry` re-registered SIL bridged classes and aborted.
 - `llvm-signal-handler-reentry.patch` — LLVM's signal-callback table holds
