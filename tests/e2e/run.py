@@ -497,7 +497,7 @@ def ios():
         driver_log = open(f"{folder}/driver.log", "w")
         driver = subprocess.Popen(
             ["bazel", "test", "//tests/safari_probe:safari_driver", "--nocache_test_results", "--ios_multi_cpus=sim_arm64",
-             f"--test_arg=--destination=platform=ios_simulator,id={udid}", "--spawn_strategy=local", "--test_timeout=3600",
+             f"--test_env=ISOMER_SIMULATOR={udid}", "--spawn_strategy=local", "--test_timeout=3600",
              "--test_output=streamed"],
             cwd=probe, stdout=driver_log, stderr=subprocess.STDOUT)
 
