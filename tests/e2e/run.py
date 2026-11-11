@@ -598,6 +598,27 @@ def ios():
         check(same(texts["wasmKit"][0]) == same(texts["webView"][0]) and same(texts["wasmKit"][1]) == same(texts["webView"][1]),
               "ios: the Counter's screen is the same under both engines, before and after a tap",
               f"{texts['wasmKit']} vs {texts['webView']}"[:600])
+        # 2048 under both: every text's label and frame, which the app's own
+        # SwiftUI lays out from the tree each engine hands it, so a difference
+        # (a title cut short under one engine) shows where. Both trees and
+        # screens are kept beside the driver's files when they differ.
+        road("both engines draw 2048 alike")
+        trees = {}
+        for engine in ("wasmKit", "webView"):
+            sh(["xcrun", "simctl", "terminate", udid, IOS_BUNDLE], check_status=False)
+            sh(["xcrun", "simctl", "launch", udid, IOS_BUNDLE, "-playground.engine", engine], env=environment)
+            drive(f"bundle {IOS_BUNDLE}", "sleep 2", "tapany 2048", "sleep 1", "tapany Run", "sleep 25")
+            trees[engine] = drive("apptree")
+            drive(f"shot 2048-{engine}")
+        laid_out = lambda tree: sorted(set(
+            (label, frame) for frame, label in re.findall(r"StaticText, 0x[0-9a-f]+, (\{\{[^}]*\}, \{[^}]*\}\})[^\n]*?label: '([^']*)'", tree)
+            if "first frame" not in label))
+        wasm_kit, web_view = laid_out(trees["wasmKit"]), laid_out(trees["webView"])
+        if not check(bool(wasm_kit) and wasm_kit == web_view, "ios: 2048's texts are laid out the same under both engines",
+                     f"only under WasmKit: {sorted(set(wasm_kit) - set(web_view))}; only under the web view: {sorted(set(web_view) - set(wasm_kit))}"[:800]):
+            for engine, tree in trees.items():
+                open(f"{folder}/2048-{engine}.tree.txt", "w").write(tree)
+            log(f"2048's trees and screens: {folder}/2048-<engine>.tree.txt and .png")
         sh(["xcrun", "simctl", "terminate", udid, IOS_BUNDLE], check_status=False)
         sh(["xcrun", "simctl", "launch", udid, IOS_BUNDLE], env=environment)
 
