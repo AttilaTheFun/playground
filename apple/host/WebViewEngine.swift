@@ -42,15 +42,58 @@ final class WebViewEngine: NSObject, WasmRuntime {
         }
         let configuration = WKWebViewConfiguration()
         configuration.userContentController.add(MessageRelay(self), name: "isomerHead")
+        // WebKit's process suspension while the view counts as inactive
+        // (`-playground.webViewInactivePolicy none`): benchmarked against
+        // the default, which may throttle it.
+        if UserDefaults.standard.string(forKey: "playground.webViewInactivePolicy") == "none" {
+            configuration.preferences.inactiveSchedulingPolicy = .none
+        }
         // In a window, but not seen and never touched: WebKit holds back the
-        // timers of a web view in none.
+        // timers of a web view in none (iOS counts a view visible when it
+        // is in a window whose scene is in the foreground).
         let view = WKWebView(frame: CGRect(x: 0, y: 0, width: 1, height: 1), configuration: configuration)
-        view.alpha = 0.01
         view.isUserInteractionEnabled = false
-        let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
-        scenes.compactMap(\.keyWindow).first?.addSubview(view)
+        place(view)
         view.load(URLRequest(url: index.deletingLastPathComponent().appendingPathComponent("native_head.html")))
         webView = view
+    }
+
+    /// The window the web view lives in, when it is one of its own.
+    private var ownWindow: UIWindow?
+
+    /// Where the web view lives, by `-playground.webViewPlacement`, for the
+    /// benchmark of each (tests/e2e/run.py, E2E_WEBVIEW_BENCH): `keyWindow`
+    /// (the default: 1x1, nearly transparent, in the app's key window),
+    /// `above` and `behind` (a transparent window of its own that takes no
+    /// touches, over or under the app's), `hidden` (a window of its own
+    /// never shown).
+    private func place(_ view: WKWebView) {
+        let scene = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first
+        let placement = UserDefaults.standard.string(forKey: "playground.webViewPlacement") ?? "keyWindow"
+        guard placement != "keyWindow", let scene else {
+            view.alpha = 0.01
+            scene?.keyWindow?.addSubview(view)
+            return
+        }
+        let window = UIWindow(windowScene: scene)
+        window.frame = CGRect(x: 0, y: 0, width: 1, height: 1)
+        window.backgroundColor = .clear
+        window.isUserInteractionEnabled = false
+        window.rootViewController = UIViewController()
+        window.rootViewController?.view.backgroundColor = .clear
+        window.rootViewController?.view.addSubview(view)
+        switch placement {
+        case "above":
+            window.windowLevel = .normal + 1
+            view.alpha = 0.01
+            window.isHidden = false
+        case "behind":
+            window.windowLevel = .normal - 1
+            window.isHidden = false
+        default:
+            window.isHidden = true
+        }
+        ownWindow = window
     }
 
     func installDependencies(prefix: String, _ dependencies: [String: SwiftFFIDependency]) {
@@ -134,6 +177,8 @@ final class WebViewEngine: NSObject, WasmRuntime {
         webView?.configuration.userContentController.removeScriptMessageHandler(forName: "isomerHead")
         webView?.removeFromSuperview()
         webView = nil
+        ownWindow?.isHidden = true
+        ownWindow = nil
     }
 
     struct EngineError: LocalizedError {

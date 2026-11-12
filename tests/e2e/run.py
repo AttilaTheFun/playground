@@ -579,6 +579,32 @@ def ios():
         # out of sight) run the same build to the same screen: the headless
         # side doesn't depend on the engine. The Counter, run and tapped under
         # each, its texts compared; the web view's run shows its timings.
+        # E2E_WEBVIEW_BENCH: the web view engine in each place it can live
+        # (WebViewEngine.place) and under each inactive scheduling policy,
+        # WasmKit beside them: the Counter run, tapped five times, its first
+        # frame and mean event-to-frame time read from the timings line, and
+        # whether every tap was drawn (a web view WebKit counts as out of
+        # sight is held back). Only this road runs.
+        if os.environ.get("E2E_WEBVIEW_BENCH"):
+            road("the web view's placements, benchmarked")
+            cells = [("wasmKit", "-", "-")] + [("webView", placement, policy)
+                     for placement in ("keyWindow", "above", "behind", "hidden") for policy in ("default", "none")]
+            for engine, placement, policy in cells:
+                sh(["xcrun", "simctl", "terminate", udid, IOS_BUNDLE], check_status=False)
+                arguments = ["-playground.engine", engine]
+                if engine == "webView":
+                    arguments += ["-playground.webViewPlacement", placement, "-playground.webViewInactivePolicy", policy]
+                sh(["xcrun", "simctl", "launch", udid, IOS_BUNDLE] + arguments, env=environment)
+                drive(f"bundle {IOS_BUNDLE}", "sleep 2", "tapany Counter", "sleep 1", "tapany Run", "sleep 25")
+                for _ in range(5):
+                    drive("tapany Tap me", "sleep 1")
+                labels = sorted(set(re.findall(r"StaticText[^\n]*?label: '([^']*)'", drive("apptree"))))
+                timing = next((label for label in labels if "first frame" in label), "no frame")
+                drawn = "Tapped 5 times" in labels
+                log(f"bench {engine} placement={placement} policy={policy}: {timing}; {'every tap drawn' if drawn else 'taps not drawn'}")
+                check(drawn, f"ios: the Counter runs and draws five taps ({engine}, {placement}, {policy})", str(labels)[:300])
+            return
+
         road("both engines run the Counter alike")
         texts = {}
         for engine in ("wasmKit", "webView"):
