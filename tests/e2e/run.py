@@ -461,7 +461,11 @@ def ios():
     # test: the MacBook itself builds nothing), deleted at the end.
     if os.environ.get("E2E_IOS") == "local":
         runtime = sh("xcrun simctl list runtimes iOS available | sed -n 's/^iOS .* - \\(com\\.apple\\.CoreSimulator\\.SimRuntime\\.iOS-[0-9-]*\\)$/\\1/p' | tail -1").stdout.strip()
-        udid = sh(["xcrun", "simctl", "create", "playground-e2e", "iPhone 17", runtime]).stdout.strip()
+        # E2E_IOS_DEVICE: another phone's size (an iPhone 15 Pro's 393 points
+        # wide against the 17's 402).
+        device = os.environ.get("E2E_IOS_DEVICE", "iPhone 17")
+        udid = sh(["xcrun", "simctl", "create", "playground-e2e", device, runtime]).stdout.strip()
+        log(f"ios: a simulator of its own, {device}")
         sh(["xcrun", "simctl", "boot", udid])
         made_here.append(udid)
         # As a Shireworks lease holds it still: the status bar at 9:41.
@@ -640,11 +644,15 @@ def ios():
             (label, frame) for frame, label in re.findall(r"StaticText, 0x[0-9a-f]+, (\{\{[^}]*\}, \{[^}]*\}\})[^\n]*?label: '([^']*)'", tree)
             if "first frame" not in label))
         wasm_kit, web_view = laid_out(trees["wasmKit"]), laid_out(trees["webView"])
-        if not check(bool(wasm_kit) and wasm_kit == web_view, "ios: 2048's texts are laid out the same under both engines",
-                     f"only under WasmKit: {sorted(set(wasm_kit) - set(web_view))}; only under the web view: {sorted(set(web_view) - set(wasm_kit))}"[:800]):
+        same = check(bool(wasm_kit) and wasm_kit == web_view, "ios: 2048's texts are laid out the same under both engines",
+                     f"only under WasmKit: {sorted(set(wasm_kit) - set(web_view))}; only under the web view: {sorted(set(web_view) - set(wasm_kit))}"[:800])
+        if not same or os.environ.get("E2E_2048_ONLY"):
             for engine, tree in trees.items():
                 open(f"{folder}/2048-{engine}.tree.txt", "w").write(tree)
             log(f"2048's trees and screens: {folder}/2048-<engine>.tree.txt and .png")
+        # E2E_2048_ONLY: this road alone (a phone's size checked, say).
+        if os.environ.get("E2E_2048_ONLY"):
+            return
         sh(["xcrun", "simctl", "terminate", udid, IOS_BUNDLE], check_status=False)
         sh(["xcrun", "simctl", "launch", udid, IOS_BUNDLE], env=environment)
 
