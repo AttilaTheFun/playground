@@ -1,3 +1,2 @@
-# The root package: just the vendored maven lock the
-# MODULE.bazel install reads.
-exports_files(["rules_android_maven_install.json"])
+# The repository's root package (its Maven lock file lived here until isomer
+# 0.52, which pins Isomer's Maven itself).

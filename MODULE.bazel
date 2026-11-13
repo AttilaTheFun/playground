@@ -15,7 +15,7 @@ module(
     version = "0.48.0",
 )
 
-bazel_dep(name = "isomer", version = "0.51.1")
+bazel_dep(name = "isomer", version = "0.52.1")
 
 # --- What isomer needs from its consumer -------------------------------
 
@@ -283,29 +283,10 @@ use_repo(
     "kotlin_compiler",
 )
 
-# rules_android's Maven graph + the Compose/benchmark artifacts the example
-# apps use. Declared from THIS root (bzlmod's rules_jvm_external cannot read a
-# lock file from a non-root module), merging isomer's contribution; the
-# lock is a vendored copy of isomer's.
-#   REPIN=1 bazel run @rules_android_maven//:pin
-bazel_dep(name = "rules_jvm_external", version = "7.1")
-maven = use_extension("@rules_jvm_external//:extensions.bzl", "maven")
-maven.install(
-    name = "rules_android_maven",
-    aar_import_bzl_label = "@rules_android//rules:rules.bzl",
-    known_contributing_modules = [
-        "rules_android",
-        "isomer",
-    ],
-    lock_file = "//:rules_android_maven_install.json",
-    version_conflict_policy = "pinned",
-    repositories = [
-        "https://maven.google.com",
-        "https://repo1.maven.org/maven2",
-    ],
-    use_starlark_android_rules = True,
-)
-use_repo(maven, "rules_android_maven")
+# No Maven of the Playground's own: Isomer's AndroidX and rules_android's
+# tools come from isomer, pinned by its lock files (isomer's
+# docs/android_maven.md); the Playground's Kotlin depends on Isomer's set,
+# @isomer//android/maven:androidx.
 
 # Hermetic Go >= 1.24 for gazelle's repo tooling (rules_android's `ak` Go
 # tools request it; the host Go is not consulted).
