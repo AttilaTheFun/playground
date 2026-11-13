@@ -104,8 +104,8 @@ isomer_android_app(
     package = "com.LoganShire.IsomerPlayground",
     services_deps = [
         "@isomer//android/libraries/wasm_view:wasm_engine_bindings",
-        # Isomer's AndroidX: browser (Custom Tabs) and coroutines among it.
-        "@isomer//android/maven:androidx",
+        # (Isomer's AndroidX, browser for Custom Tabs and coroutines among
+        # it, the macro gives the services already: @isomer//android/maven.)
     ],
     services_installer = "dev.isomer.runtime.PlaygroundAndroidServices.install(this)",
     services_kt = ":host_kotlin",
