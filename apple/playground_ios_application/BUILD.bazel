@@ -66,9 +66,10 @@ assemble_directory(
         "@isomer//wasm/libraries/swift_ui:runtime/hot_host.js": "hot_host.js",
         "//web/playground_web_application:swift_ffi_runtime_js": "swift_ffi_runtime.js",
         "//web/playground_web_application:app_bridge_js_files": "app_bridge.js",
-        "@isomer//wasm/libraries/swift_ui:runtime/react_renderer.js": "runtime/react_renderer.js",
-        # The DOM core its components run on (isomer 0.49: no React).
-        "@isomer//wasm/libraries/swift_ui:runtime/dom_react.js": "runtime/dom_react.js",
+        # The DOM renderer (react_renderer.js until isomer 0.51).
+        "@isomer//wasm/libraries/swift_ui:runtime/dom_renderer.js": "runtime/dom_renderer.js",
+        # The DOM core its components run on (dom_react.js until isomer 0.51).
+        "@isomer//wasm/libraries/swift_ui:runtime/dom_core.js": "runtime/dom_core.js",
         # The renderer's styling, a module it imports (isomer 0.48).
         "@isomer//wasm/libraries/swift_ui:runtime/render_style.js": "runtime/render_style.js",
         "@isomer//wasm/libraries/swift_ui:runtime/flat_tree.js": "runtime/flat_tree.js",

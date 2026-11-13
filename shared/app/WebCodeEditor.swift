@@ -1,5 +1,5 @@
 // The web code editor: a host view the React renderer draws as a textarea
-// over a syntax-highlighted underlay (`codeeditor` in react_renderer.js) —
+// over a syntax-highlighted underlay (`codeeditor` in dom_renderer.js) —
 // the same `CodeEditor(text:fileName:)` shape as the iOS Playground's
 // UITextView-backed editor, so the shared editor sheet injects either.
 
