@@ -15,7 +15,12 @@ module(
     version = "0.48.0",
 )
 
-bazel_dep(name = "isomer", version = "0.52.1")
+bazel_dep(name = "isomer", version = "0.55.1")
+
+# Isomer's AndroidX, a module of its own since isomer 0.54 (isomer's
+# docs/android_maven.md): the Playground's Android apps take Isomer's set
+# (`@isomer//android/maven:androidx` at its default), so they need it.
+bazel_dep(name = "isomer_android_maven", version = "0.55.1")
 
 # --- What isomer needs from its consumer -------------------------------
 
@@ -264,6 +269,23 @@ inject_repo(swift_deps, "isomer")
 bazel_dep(name = "rules_java", version = "9.3.0")
 bazel_dep(name = "rules_kotlin", version = "2.2.2")
 bazel_dep(name = "rules_python", version = "2.0.2")
+
+# rules_android's own Maven (r8, bundletool, desugaring), pinned with isomer's
+# lock file: isomer pins it only for its own builds since 0.54
+# (docs/android_maven.md, "rules_android's own Maven").
+bazel_dep(name = "rules_jvm_external", version = "7.1")
+maven = use_extension("@rules_jvm_external//:extensions.bzl", "maven")
+maven.install(
+    name = "rules_android_maven",
+    aar_import_bzl_label = "@rules_android//rules:rules.bzl",
+    known_contributing_modules = ["rules_android"],
+    lock_file = "@isomer//:rules_android_maven_install.json",
+    repositories = [
+        "https://maven.google.com",
+        "https://repo1.maven.org/maven2",
+    ],
+    use_starlark_android_rules = True,
+)
 
 # isomer's dev-tool extensions: hermetic Electron (the desktop wrapper
 # around the wasm app) and the Android emulator/platform-tools bundle the
