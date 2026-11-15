@@ -137,8 +137,9 @@ paths rewritten to the root; commits before 0.35 are isomer's alone).
 - **CI** (`.github/workflows/build.yml`, as isomer's): a pull request's
   `container` builds every app in a Linux container and runs the tests
   without a GUI; main's `populate` builds everything into Shireworks'
-  cache. By hand (`run:`): `verify` (the build and the tests, and the proof
-  beside it), `prerelease` and `release` (the Alphas, published through
+  cache. By hand (`run:`): `verify` (the build and the tests, no proof),
+  `proof` (the screenshot proof alone, ahead of a release), `prerelease`
+  and `release` (the release's with verify and the proof; the Alphas, published through
   Applications Server, and a draft release: CI's, never an agent's), and
   `adhoc` (a branch's apps). Publishing a release promotes its Alphas and
   attaches its assets. Self-hosted jobs run on the `playground-jit`

@@ -1,7 +1,8 @@
 # The Playground's CI, as isomer's, by the owner's policy for protected
 # repositories (AttilaTheFun/reviews' docs/CI_POLICY.md, and the shape of
 # 2026-11-08: tests without a GUI before a merge, builds after one, the GUI
-# tests and the proof by hand on GitHub's runners):
+# tests by hand on GitHub's runners; and of 2026-11-15: the screenshot proof
+# only ad hoc, ahead of a release):
 #
 # - container (every pull request from a branch of this repository: a
 #   self-hosted runner never runs a fork's code): every app built in one
@@ -19,8 +20,10 @@
 # - By hand (workflow_dispatch, `run:`):
 #   - verify: every app built in the container and the tests there (the
 #     Playground has no GUI tests a runner runs yet: tests/e2e and the
-#     iPhone's XCUITest probe drive a simulator and an emulator by hand);
-#     and beside it the proof: the Playground on every tier-1 platform,
+#     iPhone's XCUITest probe drive a simulator and an emulator by hand). No
+#     proof;
+#   - proof: the screenshot proof alone, by hand ahead of a release (and
+#     release's own): the Playground on every tier-1 platform,
 #     built in CI's container (where the Android one is pictured too, on an
 #     emulator leased from Shireworks: its compiler is arm64's alone),
 #     pictured on GitHub's own machines (a private copy's on Shireworks'),
@@ -38,7 +41,8 @@
 #     and notarizes the Mac's) and attached to a draft release marked
 #     pre-release (tools/ci/draft_release.sh, attach_release.sh). No tests;
 #   - release (main): verify and the proof, then, only once they pass,
-#     alpha, and a draft release proposed for release, naming this run;
+#     alpha, and a draft release proposed for release, naming this run: the
+#     one run with both, which tools/ci/verified.sh asks for;
 #   - adhoc (a branch other than main or a release branch): the apps built
 #     as an AdHoc build, checked and published, how a pull request's build
 #     reaches a phone.
@@ -73,9 +77,9 @@ on:
   workflow_dispatch:
     inputs:
       run:
-        description: "What to run: verify, prerelease or release on main (verify on a branch to bisect); adhoc on another branch"
+        description: "What to run: verify (no proof), prerelease or release on main (verify on a branch to bisect); proof (the screenshot proof alone); adhoc on another branch"
         type: choice
-        options: [verify, prerelease, release, adhoc]
+        options: [verify, proof, prerelease, release, adhoc]
         default: verify
       kind:
         description: The proof's kind
@@ -166,8 +170,8 @@ jobs:
   verify:
     # By hand: every app built, and the tests in the container (those
     # without a GUI: the Playground has no GUI tests a runner runs yet). Its
-    # result is what tools/ci/verified.sh and alpha ask for; the proof runs
-    # beside it (proof, proof-shoot, proof-compare).
+    # result is what tools/ci/verified.sh and alpha ask for; no proof (that
+    # is run: release's and run: proof's).
     if: github.event_name == 'workflow_dispatch' && (inputs.run == 'verify' || inputs.run == 'release')
     runs-on: [self-hosted, playground-jit]
     timeout-minutes: 180
@@ -179,8 +183,9 @@ jobs:
         run: exec tools/ci/container_build.sh
 
   proof:
-    # By hand, with verify: never a pull request's or a push's.
-    if: github.event_name == 'workflow_dispatch' && (inputs.run == 'verify' || inputs.run == 'release')
+    # Only ahead of a release: run: release, or run: proof by hand (never a
+    # pull request's, a push's or verify's).
+    if: github.event_name == 'workflow_dispatch' && (inputs.run == 'release' || inputs.run == 'proof')
     # Shireworks' single-use Linux containers, as the build's: the apps built
     # in it (rules_applecross for the Apple ones; Android's for x86_64, its
     # compiler's x86_64 build). A public repository's are then pictured on

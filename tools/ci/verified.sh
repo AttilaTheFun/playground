@@ -1,7 +1,9 @@
 #!/bin/bash
 # Whether a commit was verified: a run of the Build workflow by hand on it
-# (`run: verify` or `run: release`) whose verify job (the build and the
-# tests in the container) passed, and its proof: proof-compare for a public
+# whose verify job (the build and the tests in the container) passed, and
+# its proof in the same run. Only `run: release` has both (`run: verify`
+# has no proof since 2026-11-15, `run: proof` no verify), and it is the run
+# that proposed the release. The proof: proof-compare for a public
 # repository (its proof pictured on GitHub's runners), the proof job for a
 # private one. A job missing from the run fails it. The release job asks it
 # before anything is promoted (AttilaTheFun/reviews' docs/CI_POLICY.md). As
