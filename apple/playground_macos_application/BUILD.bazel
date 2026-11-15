@@ -13,8 +13,8 @@ load("//tools/variant:defs.bzl", "variant_infoplist")
 
 # BuildVariant and the name under its icon (//tools/variant), as the
 # iPhone's; one bundle id for both. No entitlements here: Applications' app
-# group comes with the Developer ID profile Applications Server signs it
-# with, as Reviews' Mac app's; until then AppUpdates.start() logs that there
+# group comes with the Developer ID profile Shireworks' signing service signs
+# it with, as Reviews' Mac app's; until then AppUpdates.start() logs that there
 # is no container.
 variant_infoplist(
     name = "variant_plist",

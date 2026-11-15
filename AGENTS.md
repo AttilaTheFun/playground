@@ -76,7 +76,10 @@ paths rewritten to the root; commits before 0.35 are isomer's alone).
 - **Versions**: MAJOR.MINOR.BUILD, as isomer's. MODULE.bazel and the apps
   commit MAJOR.MINOR.0 (iOS and Mac `Info.plist`, Android `version_name`,
   the web page's and the desktop hosts'); CI stamps each build's own,
-  MAJOR.MINOR.N, from Applications Server (`tools/ci/stamp_apps.sh`), and a
+  MAJOR.MINOR.N, from the repository's own releases and tags
+  (`tools/ci/stamp_apps.sh` over `tools/ci/version_from_tags.sh`: a
+  release's on the commit, else one past the line's highest, so a new
+  line's builds start at MAJOR.MINOR.1), and a
   release is tagged vMAJOR.MINOR.N. Android's `version_code` is
   MAJOR×1,000,000 + MINOR×1,000 + N; `CFBundleVersion` stays 1.
 
@@ -138,9 +141,13 @@ paths rewritten to the root; commits before 0.35 are isomer's alone).
   `container` builds every app in a Linux container and runs the tests
   without a GUI; main's `populate` builds everything into Shireworks'
   cache. By hand (`run:`): `verify` (the build and the tests, and the proof
-  beside it), `prerelease` and `release` (the Alphas, published through
-  Applications Server, and a draft release: CI's, never an agent's), and
-  `adhoc` (a branch's apps). Publishing a release promotes its Alphas and
+  beside it), and `prerelease` and `release` (the Alphas, signed by
+  Shireworks' signing service, `tools/ci/sign_from_ci.sh`, the Mac's
+  stapled on a Mac slot, and a draft release: CI's, never an agent's).
+  There is no `adhoc` run: a branch's builds are experiments only (the
+  owner, 2026-11-12). Publishing a release has Shireworks stamp the Alphas
+  its proposal attached Production and sign them again
+  (`tools/ci/release_alphas.sh`, `sign_from_ci.sh --promote`), and
   attaches its assets. Self-hosted jobs run on the `playground-jit`
   runners.
 - **A person's own phone is not a test device.** Install a build there only

@@ -377,7 +377,7 @@ ios_application(
     # Its own app ID and keychain group: a wildcard profile's entitlements
     # would otherwise be copied as-is (application-identifier TEAM.*). And
     # Applications' app group, which CI's build carries (the bundle id's own
-    # profile grants it when Applications Server signs it again); a local
+    # profile grants it when Shireworks' signing signs it again); a local
     # device build under the wildcard profile, which can grant no app group,
     # goes without.
     entitlements = select({
@@ -386,7 +386,7 @@ ios_application(
         "//conditions:default": "Playground.entitlements",
     }),
     # CI's device build (--config=ci_device) signs ad hoc with a placeholder
-    # profile, which Applications Server replaces with the bundle id's own.
+    # profile, which Shireworks' signing replaces with the bundle id's own.
     provisioning_profile = select({
         "//tools/ci_device": "//tools/ci_device:ci_placeholder_profile",
         "//conditions:default": ":_xcode_managed_profile",

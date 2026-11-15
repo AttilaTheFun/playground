@@ -44,9 +44,8 @@
 # has it): what CI publishes is copied out into the checkout, found by cquery with the build's own flags, from the
 # execution root. Flags as --name=value (--compilation_mode=opt, not -c
 # opt): every argument that doesn't start with "-" is taken for a target.
-# An Android app's files are its signed .apk (published as signed by its
-# build: Applications Server keeps no Android key), its unsigned one and its
-# deploy jar; only the first is copied.
+# An Android app's files are its signed .apk (the one tools/ci/sign_from_ci.sh
+# takes), its unsigned one and its deploy jar; only the first is copied.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 SDK_SHA256="251c252f7f41bcd3e08655e49e182686682d705945f4a2807049b9051c606ebb"
