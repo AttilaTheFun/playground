@@ -152,13 +152,11 @@ setup)
     if [ -n "${ISOMER_WINDOWS_SDKS:-}" ]; then
         sdks "$ISOMER_WINDOWS_SDKS" ISOMER_WINDOWS_SDKS "rewrite windows-sdks\\.invalid/sha256/(.*) @URL@/\$1"
     fi
-    for module in "$ROOT"; do
-        rc="$module/.bazelrc.user"
-        if [ -e "$rc" ] && ! head -1 "$rc" | grep -qxF "$MARK"; then
-            fail "$rc is a builder's own: not replaced"
-        fi
-        printf '%s\n' "${lines[@]}" > "$rc"
-    done
+    rc="$ROOT/.bazelrc.user"
+    if [ -e "$rc" ] && ! head -1 "$rc" | grep -qxF "$MARK"; then
+        fail "$rc is a builder's own: not replaced"
+    fi
+    printf '%s\n' "${lines[@]}" > "$rc"
     echo "ci_bazel: Bazel's settings written ($ROOT/.bazelrc.user):"
     sed 's/^/  /' "$ROOT/.bazelrc.user"
     ;;
