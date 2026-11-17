@@ -65,10 +65,14 @@ paths rewritten to the root; commits before 0.35 are isomer's alone).
   (`.bazelrc` lists it before the BCR); its Swift, AgentUI and UpdateKit
   through `third_party/swift_packages/Package.swift` (isomer by its
   release's tag, the others by exact version: `tools/released_pins.sh`
-  checks them). AgentUI's targets that import SwiftUI or Foundation depend
-  on `@isomer//:swift_ui` and `@isomer//:foundation` (`configure_package` in
-  MODULE.bazel): Isomer's on wasm and Android, nothing on Apple. Run Bazel
-  from the repository's root.
+  checks them). AgentUI's targets that import SwiftUI depend on
+  `@isomer//:swift_ui` (`configure_package` in MODULE.bazel): Isomer's on
+  wasm and Android, nothing on Apple. Foundation there is the Swift SDK's
+  (since isomer 0.56: MODULE.bazel registers Isomer's Swift SDKs, the plain
+  ones, from AttilaTheFun/isomer_hermetic_toolchains), so nothing depends on
+  a Foundation; the Playground SDK carries the wasm SDK's for the apps'
+  compilers (`//shared/compiler:wasm_sdk_foundation`). Run Bazel from the
+  repository's root.
 - **Signing is the builder's**: an iPhone build takes its Apple team from
   `ISOMER_TEAM_ID` (`common --repo_env=ISOMER_TEAM_ID=<team>` in an untracked
   `.bazelrc.user`; `tools/signing`). No team, profile, device identifier or
