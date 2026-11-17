@@ -80,7 +80,8 @@ paths rewritten to the root; commits before 0.35 are isomer's alone).
 - **Versions**: MAJOR.MINOR.BUILD, as isomer's. MODULE.bazel and the apps
   commit MAJOR.MINOR.0 (iOS and Mac `Info.plist`, Android `version_name`,
   the web page's and the desktop hosts'); CI stamps each build's own,
-  MAJOR.MINOR.N, from Applications Server (`tools/ci/stamp_apps.sh`), and a
+  MAJOR.MINOR.N, from the repository's own releases and tags
+  (`tools/ci/stamp_apps.sh`, `tools/ci/version_from_tags.sh`), and a
   release is tagged vMAJOR.MINOR.N. Android's `version_code` is
   MAJOR×1,000,000 + MINOR×1,000 + N; `CFBundleVersion` stays 1.
 
@@ -99,15 +100,17 @@ paths rewritten to the root; commits before 0.35 are isomer's alone).
   swift-frontend, wasm-ld, macro plugin server and plugins, thinned to
   arm64 on a Mac, and the wasm SDK's sysroot and static stdlib, about
   470 MB: the Mac's Resources, beside the Linux app). That is the building
-  machine's compiler, so a Mac app built on Linux (CI's publishing jobs)
-  takes a staged one instead: when the gitignored
+  machine's compiler, so a Mac app built on Linux takes a staged one
+  instead: when the gitignored
   `apple/playground_macos_application/staged_toolchain` is there (a
-  playground_toolchain/ tree a Mac assembled), the Mac's Resources are it.
-  CI stages these from Shireworks' files with
-  tools/ci/stage_playground_compilers.sh (`ios-simulator`, `ios-device`,
-  `macos`, `android`, and `web`: the browser's compiler as stage_bundle.sh
-  writes it, which package_site.sh --toolchain-from takes; a new archive is
-  added to Shireworks' files by its maintainers and its SHA-256 changed there). Windows has no such
+  playground_toolchain/ tree a Mac assembled), the Mac's Resources are it
+  (CI builds the Mac app on a Mac, so it stages none). CI stages the others
+  from this repository's `compilers` release (each archive an asset named
+  by its SHA-256) with tools/ci/stage_playground_compilers.sh
+  (`ios-simulator`, `ios-device`, `android`, `android-x86_64`, and `web`:
+  the browser's compiler as stage_bundle.sh writes it, which package_site.sh
+  --toolchain-from takes; a new archive is uploaded there by a maintainer,
+  tools/ci/publish_compilers.sh, and its SHA-256 changed in the script). Windows has no such
   toolchain in rules_swift; its package takes the build VM's installed
   Swift's (tools/proof/proof.py does), with the wasm SDK's data
   and the Playground SDK from the Mac. Linux's lld wants Ubuntu 24.04's
@@ -138,16 +141,23 @@ paths rewritten to the root; commits before 0.35 are isomer's alone).
   is published (or by hand; docs/playground_web.md "Publishing"). Never
   commit the site: it is about 115 MB of compiled output. A hot-reload feed:
   `tools/playground/publish_hot_reload.sh`.
-- **CI** (`.github/workflows/build.yml`, as isomer's): a pull request's
-  `container` builds every app in a Linux container and runs the tests
-  without a GUI; main's `populate` builds everything into Shireworks'
-  cache. By hand (`run:`): `verify` (the build and the tests, no proof),
-  `proof` (the screenshot proof alone, ahead of a release), `prerelease`
-  and `release` (the release's with verify and the proof; the Alphas, published through
-  Applications Server, and a draft release: CI's, never an agent's), and
-  `adhoc` (a branch's apps). Publishing a release promotes its Alphas and
-  attaches its assets. Self-hosted jobs run on the `playground-jit`
-  runners.
+- **CI** (`.github/workflows/build.yml`, as isomer's): on GitHub's own
+  runners alone, nothing of Shireworks at run time (no self-hosted runner,
+  remote cache, signing service or lease). The web, Linux and Android build
+  together in Swift's image on x86_64 Ubuntu (`tools/ci/job_tools.sh`,
+  `tools/ci/container_build.sh`), the iPhone and the Mac on `xcode-27` Macs
+  with their own Xcode. A pull request's `container` and `container-apple`
+  build every app and run the tests without a GUI; main's `populate` and
+  `populate-apple` build everything into GitHub's cache and BuildBuddy's
+  (`tools/ci/ci_bazel.sh`: the BUILDBUDDY_API_KEY secret reaches main's
+  runs and a release's alone, never a pull request's). By hand (`run:`):
+  `verify` (the builds and the tests, no proof), `proof` (the screenshot
+  proof alone, ahead of a release), `prerelease` and `release` (the
+  release's with verify and the proof; the Alphas, signed in the job with
+  the `release` environment's keys, `tools/ci/sign_builds.sh`, and a draft
+  release: CI's, never an agent's). Publishing a release signs its Alphas
+  again as Production, Android's built for production, and attaches its
+  assets. There is no adhoc run.
 - **A person's own phone is not a test device.** Install a build there only
   when its owner asks, read the installed version back, and stop: no
   launching, tapping, screenshots or autorun hooks unless they ask for
@@ -191,10 +201,11 @@ paths rewritten to the root; commits before 0.35 are isomer's alone).
   `web/desktop/pokedex`), its screen the capture's file name in
   `tools/proof/proof.py`. CI compares nothing: Reviews compares a release's
   proof with the previous release's, item by id, and a release's draft
-  carries it as proof.zip. Built in CI's Linux container; the iPhone and
+  carries it as proof.zip. The web's and Android's built in CI's Linux
+  container, the iPhone's and the Mac's on a `xcode-27` Mac; the iPhone and
   the Mac pictured on GitHub's `xcode-27` runners, the web in Ubuntu's
-  Chrome, and Android on an emulator leased from Shireworks (the compiler it
-  carries is arm64's alone). Only CI's proof counts; Reviews holds a release until its
+  Chrome, and Android on an emulator under the Ubuntu runner's KVM (the
+  x86_64 build, with the compiler's x86_64 build). Only CI's proof counts; Reviews holds a release until its
   commit has one. Run by hand elsewhere, stamp the build's version into the
   working tree first (`tools/playground/stamp.py 0.47.N`) and check the
   files out after; the web Playground's compiler is the in-browser one an

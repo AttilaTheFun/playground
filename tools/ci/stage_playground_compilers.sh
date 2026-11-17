@@ -1,7 +1,8 @@
 #!/bin/bash
-# The Playground's compilers that Bazel doesn't make, staged from
-# Shireworks' files (by SHA-256, as the Apple SDK archive is: added to its
-# files by its maintainers, then the SHA-256 changed here) into the checkout's gitignored
+# The Playground's compilers that Bazel doesn't make, staged by SHA-256
+# from the assets of this repository's `compilers` release on GitHub (each
+# archive an asset named by its SHA-256: a new one is uploaded there by a
+# maintainer, then its SHA-256 changed here) into the checkout's gitignored
 # folders, where the apps' BUILD files find them
 # (AGENTS.md, "The staged compilers"):
 #
@@ -31,14 +32,19 @@
 #
 #   tools/ci/stage_playground_compilers.sh <name>…
 #
-# The proof stages the simulator's, Android's, the Mac's and the browser's
-# (tools/ci/proof.sh); the
-# publishing jobs the device's, the Mac's and Android's. A folder already
-# staged from the same archive is kept; one staged by hand (a checkout of an
-# agent's: no .sha256 in it, nor, for the iPhone's, in either platform's
-# folder) is kept as it is. Takes them through Shireworks' API
-# (tools/ci/shireworks.sh: a CI job's SHIREWORKS_GRANT, or SHIREWORKS_SERVERS
-# with a key), with curl.
+# The proof stages the simulator's, Android's (x86_64's too) and the
+# browser's (tools/ci/proof.sh); the publishing jobs the device's, Android's
+# and the browser's. The Mac's is for a Mac app built on Linux: CI builds it
+# on a Mac, whose own compiler Bazel assembles. A folder already staged from
+# the same archive is kept; one staged by hand (a checkout of an agent's: no
+# .sha256 in it, nor, for the iPhone's, in either platform's folder) is kept
+# as it is. With curl, from GitHub's public download URL (no token), each
+# archive checked against its SHA-256 before it is unpacked.
+#
+#   PLAYGROUND_COMPILERS  where the archives are, each named by its SHA-256:
+#                    a URL (default: this repository's `compilers` release,
+#                    https://github.com/AttilaTheFun/playground/releases/download/compilers)
+#                    or a folder
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 IOS_SIMULATOR_TOOLCHAIN=1eb52eb470019b2ac3066a93955e562afe19d295e4b30585c73cd5892c048c4d
@@ -55,23 +61,18 @@ playground="$ROOT"
 work="$(mktemp -d "${RUNNER_TEMP:-/tmp}/playground-compilers.XXXXXX")"
 trap 'rm -rf "$work"' EXIT
 
-# An archive from Shireworks' files: their URL from shireworks.sh, read with
-# the cache's read token (a netrc of this run's own: never on a command line).
+# An archive, by its SHA-256, from PLAYGROUND_COMPILERS (a URL or a folder).
+compilers="${PLAYGROUND_COMPILERS:-https://github.com/AttilaTheFun/playground/releases/download/compilers}"
 fetch() {
-    local url host token
-    url="$("$ROOT/tools/ci/shireworks.sh" files-url "$1")"
-    host="${url#*://}"
-    host="${host%%[:/]*}"
-    # A line for each host the files come from, written once.
-    if ! grep -qs "^machine $host " "$work/netrc"; then
-        token="$("$ROOT/tools/ci/shireworks.sh" cache-token)" ||
-            { echo "::error::no read token for Shireworks' files (shireworks.sh cache-token)"; exit 1; }
-        (umask 077 && printf 'machine %s login bazel password %s\n' "$host" "$token" >> "$work/netrc")
-    fi
-    curl -fsSL --retry 3 --netrc-file "$work/netrc" -o "$2" "$url"
+    case "$compilers" in
+        http://* | https://*) curl -fsSL --retry 5 --retry-all-errors -o "$2" "${compilers%/}/$1" ||
+            { echo "::error::no compiler archive $1 at $compilers"; exit 1; } ;;
+        *) cp "$compilers/$1" "$2" || { echo "::error::no compiler archive $1 in $compilers"; exit 1; } ;;
+    esac
 }
+sha256() { if command -v sha256sum > /dev/null; then sha256sum "$1"; else shasum -a 256 "$1"; fi | cut -d' ' -f1; }
 
-# An archive from Shireworks' files, unpacked into <into>, which it makes
+# An archive, unpacked into <into>, which it makes
 # <folder>. <hand> (default <folder>) with no .sha256 in it or its folders
 # was staged by hand, and is kept.
 stage() {
@@ -80,7 +81,7 @@ stage() {
     if [ -d "$hand" ] && [ -z "$(find "$hand" -maxdepth 2 -name .sha256 -print -quit)" ]; then return 0; fi
     rm -rf "$folder"
     fetch "$sha" "$work/$sha.tar"
-    [ "$(shasum -a 256 "$work/$sha.tar" | cut -d' ' -f1)" = "$sha" ] || { echo "::error::$sha's bytes don't match it"; exit 1; }
+    [ "$(sha256 "$work/$sha.tar")" = "$sha" ] || { echo "::error::$sha's bytes don't match it"; exit 1; }
     mkdir -p "$into"
     # gzip, or zstd (the Android compilers built in a container).
     if [ "$(head -c 4 "$work/$sha.tar" | od -An -tx1 | tr -d ' ')" = 28b52ffd ]; then

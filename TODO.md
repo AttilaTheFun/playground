@@ -99,5 +99,6 @@ it, at 0.47.)
   (ObservationMacros, SwiftMacros), and Android's prebuilt plugins are
   staged by `android/playground_android_application/stage_toolchain.sh`; a
   toolchain bump means running them again by hand (and, for CI, the new
-  archives added to Shireworks' files and their SHA-256s in
+  archives uploaded to this repository's `compilers` release,
+  `tools/ci/publish_compilers.sh`, and their SHA-256s in
   `tools/ci/stage_playground_compilers.sh`).

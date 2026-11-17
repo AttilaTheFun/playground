@@ -9,11 +9,10 @@
 # the Build workflow's alpha job, which attaches it to the draft release.
 # Compiled output never goes into git: the site is over 100 MB with the
 # compiler, and building it needs the compiler built by
-# tools/browser_toolchain, which no runner has (CI stages it from Shireworks'
-# files).
+# tools/browser_toolchain, which no runner builds (CI stages it from this
+# repository's `compilers` release: tools/ci/stage_playground_compilers.sh).
 #
-# In CI's Linux container, as every job but the GUI tests (Shireworks'
-# single-use containers), with curl and tar alone: the asset
+# On GitHub's own Ubuntu runner, with curl and tar alone: the asset
 # comes from the release's public download URL (no gh), and the Pages
 # artifact is made here, the plain tar upload-pages-artifact would make.
 # The site is already dereferenced (package_site.sh), so tar archives it as
@@ -46,14 +45,13 @@ concurrency:
   group: pages
 jobs:
   deploy:
-    runs-on: [self-hosted, playground-jit]
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      # In the job's temporary folder, which the runner empties after the
-      # job: a self-hosted runner's workspace outlives it.
+      # In the job's temporary folder.
       - name: Download the release's site
         env:
           # The published release's tag, or the input; none means the

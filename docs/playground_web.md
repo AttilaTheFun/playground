@@ -208,8 +208,8 @@ The site is https://attilathefun.github.io/playground/ (the Playground at
 at https://attilathefun.github.io/isomer/, until 0.47). No compiled output
 goes into git: the site is about 115 MB with the in-browser toolchain, and
 the compiler in it is built by tools/browser_toolchain from a Swift/LLVM
-workspace no CI runner has. So the compiler is staged from Shireworks' files
-(tools/ci/stage_playground_compilers.sh web), and the Build workflow's alpha
+workspace no CI runner has. So the compiler is staged from this
+repository's `compilers` release (tools/ci/stage_playground_compilers.sh web), and the Build workflow's alpha
 job packages the site and attaches it to the draft release it makes. By
 hand, the same:
 
