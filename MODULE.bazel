@@ -15,19 +15,20 @@ module(
     version = "0.48.0",
 )
 
-bazel_dep(name = "isomer", version = "0.55.1")
+bazel_dep(name = "isomer", version = "0.56.1")
 
 # Isomer's AndroidX, a module of its own since isomer 0.54 (isomer's
 # docs/android_maven.md): the Playground's Android apps take Isomer's set
 # (`@isomer//android/maven:androidx` at its default), so they need it.
-bazel_dep(name = "isomer_android_maven", version = "0.55.1")
+bazel_dep(name = "isomer_android_maven", version = "0.56.1")
 
 # --- What isomer needs from its consumer -------------------------------
 
 # rules_swift: isomer's patched version comes from the project's registry
-# (.bazelrc lists it before the BCR), patches and all: 4.2.2.isomer.3, which
-# sorts above the 4.2.2 rules_applecross asks for, so it needs no override.
-bazel_dep(name = "rules_swift", version = "4.2.2.isomer.3")
+# (.bazelrc lists it before the BCR), patches and all: 4.3.0.isomer.1, which
+# sorts above the 4.2.2 rules_applecross asks for, so it needs no override
+# (and takes `swift.android_sdk(url = …)`, below).
+bazel_dep(name = "rules_swift", version = "4.3.0.isomer.1")
 
 # swift_ffi, swift_gpu and swift_map are part of the isomer module
 # (`@isomer//swift_ffi/...`, `@isomer//swift_gpu/...`, `@isomer//swift_map/...`):
@@ -49,12 +50,27 @@ swift.toolchain(
     name = "swift_toolchain",
     swift_version = "6.4.2",
 )
-swift.wasm_sdk()
+# Isomer's Swift SDKs (isomer 0.56), whose Foundation, CoreGraphics and
+# Combine are Isomer's: every `import Foundation` built for the web or
+# Android, the Playground's, a Swift package's or isomer's, is the SDK's,
+# with no dependency declared. The plain SDKs (no ICU), as the Playground
+# formats nothing with Foundation; an app that formats dates or numbers
+# takes the -i18n ones (swift-6.4.2-RELEASE_<platform>-i18n.artifactbundle.tar.gz,
+# their sha256 in isomer_hermetic_toolchains' release notes). The
+# Playground SDK a project compiles against carries the wasm one's
+# Foundation (apple/playground_ios_application:playground_sdk).
+swift.wasm_sdk(
+    url = "https://github.com/AttilaTheFun/isomer_hermetic_toolchains/releases/download/isomer-6.4.2.1/swift-6.4.2-RELEASE_wasm.artifactbundle.tar.gz",
+    sha256 = "3dbfc93e5c91e92d197e3660a488fd580133200df75bcaca90f3b50c5782ae93",
+)
 # No wasi-threads SDK beside it since 0.41: Isomer's was a build of
 # Swift 6.3.2 with swiftlang/swift#92018, which reaches a release in 6.5;
 # reactors built for `@isomer//swift_ffi/rules:wasm32-wasip1-threads` wait
 # for it (TODO.md).
-swift.android_sdk()
+swift.android_sdk(
+    url = "https://github.com/AttilaTheFun/isomer_hermetic_toolchains/releases/download/isomer-6.4.2.1/swift-6.4.2-RELEASE_android.artifactbundle.tar.gz",
+    sha256 = "557ed5ffc5c9d2a2061ea3ea24a2ec0e44dcabd6f42b37ef319e2f08198034fc",
+)
 use_repo(
     swift,
     "swift_toolchain",
@@ -220,38 +236,20 @@ swift_deps.from_package(
     swift = "//third_party/swift_packages:Package.swift",
 )
 
-# On wasm and Android `import Foundation` is Isomer's (@isomer//foundation),
-# which a library reaches only by depending on it: the packages built for
-# those platforms depend on @isomer//:foundation (nothing on Apple, where
-# Foundation is the system's).
-swift_deps.configure_package(
-    name = "swift-protobuf",
-    target_deps = {"SwiftProtobuf": ["@isomer//:foundation"]},
-)
-
-# AgentUI (the Playground's agent page) imports SwiftUI and Foundation. On
-# Apple those are the system's; on the web and Android isomer's `SwiftUI` and
-# `Foundation` modules, each reached through one label that resolves per
-# platform (and to nothing on Apple).
+# AgentUI (the Playground's agent page) imports SwiftUI. On Apple that is the
+# system's; on the web and Android isomer's `SwiftUI` module, reached through
+# one label that resolves per platform (and to nothing on Apple). No package
+# here needs a Foundation dependency declared (since isomer 0.56): on wasm and
+# Android `import Foundation` is the Swift SDK's, Isomer's (above).
 swift_deps.configure_package(
     name = "agent_ui",
     target_deps = {
-        "AgentUI": ["@isomer//:swift_ui", "@isomer//:foundation"],
-        "InboxUI": ["@isomer//:swift_ui", "@isomer//:foundation"],
-        "MarkdownViews": ["@isomer//:swift_ui", "@isomer//:foundation"],
-        "MessagesCore": ["@isomer//:swift_ui", "@isomer//:foundation"],
-        "MessagesUI": ["@isomer//:swift_ui", "@isomer//:foundation"],
-        "NavigationUI": ["@isomer//:swift_ui", "@isomer//:foundation"],
-    },
-)
-# UpdateKit (AttilaTheFun/update_kit): the Storybook's and the
-# Playground's iPhone and Mac apps write the build they are for Applications.
-# Apple's alone today, where the label resolves to nothing; on wasm and
-# Android it would be Isomer's Foundation, as for the packages above.
-swift_deps.configure_package(
-    name = "update_kit",
-    target_deps = {
-        "UpdateKit": ["@isomer//:foundation"],
+        "AgentUI": ["@isomer//:swift_ui"],
+        "InboxUI": ["@isomer//:swift_ui"],
+        "MarkdownViews": ["@isomer//:swift_ui"],
+        "MessagesCore": ["@isomer//:swift_ui"],
+        "MessagesUI": ["@isomer//:swift_ui"],
+        "NavigationUI": ["@isomer//:swift_ui"],
     },
 )
 use_repo(
@@ -263,7 +261,8 @@ use_repo(
 )
 
 # The generated package repositories see rules_swift_package_manager's
-# repositories; the target_deps above (and isomer's own) name @isomer.
+# repositories; the target_deps above (and isomer's own: its wire protos)
+# name @isomer.
 inject_repo(swift_deps, "isomer")
 
 bazel_dep(name = "rules_java", version = "9.3.0")

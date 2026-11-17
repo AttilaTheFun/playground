@@ -32,8 +32,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/AttilaTheFun/isomer.git",
       "state" : {
-        "branch" : "v0.55.1",
-        "revision" : "2466060e83465c9c743bdb04f1bbaae2fe75e654"
+        "branch" : "v0.56.1",
+        "revision" : "6e567c79d0d1bac1d0251cf292e17fb95442f44c"
       }
     },
     {
@@ -97,23 +97,6 @@
       "state" : {
         "revision" : "f8fad2f95ad67b45f6340c0960e2396094d67e07",
         "version" : "5.1.1"
-      }
-    },
-    {
-      "identity" : "swift-foundation",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/swiftlang/swift-foundation.git",
-      "state" : {
-        "revision" : "e4049b2d77e2d5d70c4cfcc99fd5eca32e1bcb06"
-      }
-    },
-    {
-      "identity" : "swift-foundation-icu",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/apple/swift-foundation-icu",
-      "state" : {
-        "branch" : "release/6.4.x",
-        "revision" : "f986d0728da0766cf81f371521b909d4a11681d2"
       }
     },
     {
