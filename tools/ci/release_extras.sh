@@ -2,17 +2,15 @@
 # A release's assets beyond its signed builds and its proof, from the Build
 # workflow's `release` job (when the owner publishes a GitHub release: a
 # v0.47.N tag on a main commit). The signed builds (Playground-<version>-ios.ipa,
-# -macos.zip and -macos.dmg, -android.apk, and builds.json) come through
-# Applications' interface: promote_from_ci.sh and publish_from_ci.sh
-# --download, then attach_release.sh (the private AttilaTheFun/applications'
+# -macos.zip and -macos.dmg, -android.apk, and builds.json) are signed in
+# the job (tools/ci/sign_builds.sh) and attached by attach_release.sh, as
+# Applications reads them (the private AttilaTheFun/applications'
 # docs/RELEASE_ASSETS.md). The proof (proof.zip, Reviews' format 2) and the
 # site (playground-site.tar.gz, which pages.yml deploys) are attached to the
 # draft by the proposal. This attaches the rest: the iPhone app for the
 # simulator (an ipa is a zip: unzip it and `xcrun simctl install booted
 # Payload/Playground.app`), Playground-<version>-iOS-Simulator.zip, until
 # the app is on the App Store.
-# isomer's tools/ci/release_assets.sh until Applications' script took that
-# name (publish_from_ci.sh and promote_from_ci.sh source it beside them).
 #
 #   tools/ci/release_extras.sh upload <tag> <dir>…  # each dir's simulator app, named as above, onto the release
 #

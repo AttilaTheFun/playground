@@ -183,9 +183,11 @@ build --macos_minimum_os=15.0
 
 # The Apple targets built on Linux with rules_applecross (MODULE.bazel), on
 # a builder that has Xcode 27.0's SDK archive: its .bazelrc.user says where
-# (`--distdir`, or a `--downloader_config` to a Shireworks server) and turns this on
-# with `build:linux --config=apple_on_linux`. Without it (GitHub's runners)
-# Linux builds what runs on Linux alone, and nothing fetches the SDKs. Its
+# (`--distdir`, or a `--downloader_config` to a server that has it) and turns
+# this on with `build:linux --config=apple_on_linux`. Without it (CI, on
+# GitHub's runners, which builds the Apple targets on GitHub's Macs with
+# their Xcode) Linux builds what runs on Linux alone, and nothing fetches
+# the SDKs. Its
 # toolchains (the clean-room Apple tools, LLD, the Swift that built the SDKs)
 # take the Apple targets; the host's own C and Swift toolchains still build
 # what runs on Linux (the Linux pieces link its system libraries);
@@ -228,13 +230,32 @@ build:beta --//tools/variant:variant=beta
 build:prod --//tools/variant:variant=production
 build:adhoc --//tools/variant:variant=adhoc
 # CI's iPhone and iPad apps: a device build, signed ad hoc with a placeholder
-# profile (//tools/ci_device), which Applications Server signs again with the
-# team's identity and the bundle id's profile when it is published.
+# profile (//tools/ci_device), which CI signs again with the team's identity
+# and the bundle id's profile before it is published (tools/ci/sign_builds.sh,
+# tools/ci/apple_sign.sh).
 build:ci_device --ios_multi_cpus=arm64
 build:ci_device --ios_signing_cert_name=-
 
+# BuildBuddy's remote cache and build results (--config=buildbuddy): no key
+# here. CI's runs on main and its releases turn it on with the key, in a
+# file of the job's own (tools/ci/ci_bazel.sh, from the BUILDBUDDY_API_KEY
+# secret), and only main's builds and the release jobs upload to it; pull
+# requests don't use it (GitHub's cache alone). A builder with a key of
+# their own puts the same lines in .bazelrc.user. What a job downloads is
+# Bazel's default, the top-level outputs (what the scripts copy, run and
+# test); the writers download every output (--remote_download_all), so the
+# disk cache GitHub's cache keeps for runs without a key stays whole.
+# Compressed (zstd), and the build event stream without the legacy list of
+# each target's outputs, which BuildBuddy doesn't read. As isomer's.
+build:buildbuddy --bes_results_url=https://app.buildbuddy.io/invocation/
+build:buildbuddy --bes_backend=grpcs://remote.buildbuddy.io
+build:buildbuddy --remote_cache=grpcs://remote.buildbuddy.io
+build:buildbuddy --remote_timeout=10m
+build:buildbuddy --remote_cache_compression
+build:buildbuddy --nolegacy_important_outputs
+
 # Per-machine settings (untracked), e.g. --override_module for a fork checked
-# out beside isomer.
+# out beside isomer; CI's (tools/ci/ci_bazel.sh) in CI.
 try-import %workspace%/.bazelrc.user
 
 # The SwiftPM packages (rules_swift_package_manager) build at the manifest's

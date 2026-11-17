@@ -1,34 +1,34 @@
 #!/bin/bash
 # Whether a commit was verified: a run of the Build workflow by hand on it
-# whose verify job (the build and the tests in the container) passed, and
-# its proof in the same run. Only `run: release` has both (`run: verify`
-# has no proof since 2026-11-15, `run: proof` no verify), and it is the run
-# that proposed the release. The proof: proof-compare for a public
-# repository (its proof pictured on GitHub's runners), the proof job for a
-# private one. A job missing from the run fails it. The release job asks it
-# before anything is promoted (AttilaTheFun/reviews' docs/CI_POLICY.md). As
-# isomer's tools/ci/verified.sh, less the jobs of tests this repository
-# doesn't have (isomer's apple and android).
+# whose builds and tests passed, on GitHub's own runners: each platform's
+# build and its tests there (verify: the web, Linux and Android together;
+# verify-apple: the iPhone and the Mac), and its screenshot proof
+# (proof-compare). Only `run: release` runs both the tests and the proof
+# (`run: verify` has no proof, `run: proof` no tests: the owner,
+# 2026-11-15), and it is the run that proposed the release, so a release's
+# own proposal is what this finds. The release job asks it before anything
+# is signed (AttilaTheFun/reviews' docs/CI_POLICY.md). A job missing from a
+# run fails it, so a job renamed here or in the workflow can't drop out of
+# the check unseen. As isomer's tools/ci/verified.sh, less the jobs of
+# tests the Playground doesn't have (isomer's container-verify, apple and
+# android).
 #
 #   tools/ci/verified.sh <commit>
 #
 # GH_TOKEN: the job's token (`actions: read`). Prints the verified run.
 set -euo pipefail
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+# gh, installed where the image lacks it.
+# shellcheck source=tools/ci/gh_ready.sh
+. "$ROOT/tools/ci/gh_ready.sh"
 sha="${1:?usage: verified.sh <commit>}"
 repo="${GITHUB_REPOSITORY:?}"
-# Which jobs ran depends on it: a public repository's proof is pictured on
-# GitHub's runners and written in proof-compare, a private one's in proof
-# alone. A job missing from a run fails it, so a job renamed here or in the
-# workflow can't drop out of the check unseen (as isomer's).
-private="$(gh api "repos/$repo" --jq .private)"
-case "$private" in true | false) ;; *) echo "verified.sh: $repo's visibility unknown" >&2; exit 1 ;; esac
 for run in $(gh api "repos/$repo/actions/runs?head_sha=$sha&event=workflow_dispatch&per_page=50" \
     --jq '.workflow_runs[] | select(.name == "Build") | .id'); do
-    if gh api "repos/$repo/actions/runs/$run/jobs?per_page=100" --jq "$private"' as $private
-        | .jobs as $jobs
-        | def result(name): ([$jobs[] | select(.name == name) | .conclusion][0] // "missing");
-        result("verify") == "success"
-        and (if $private then result("proof") == "success" else result("proof-compare") == "success" end)' |
+    if gh api "repos/$repo/actions/runs/$run/jobs?per_page=100" --jq '.jobs as $jobs
+        | def named(name): [$jobs[] | select(.name == name or (.name | startswith(name + " (")))];
+          def passed(name): named(name) as $all | ($all | length) > 0 and ($all | all(.conclusion == "success"));
+        passed("verify") and passed("verify-apple") and passed("proof-compare")' |
         grep -qx true; then
         echo "$run"
         exit 0
