@@ -39,6 +39,10 @@
 #   top-level outputs (Bazel's default, the files the jobs copy and run); a
 #   writer downloads them all, so the disk cache GitHub's cache keeps
 #   (above) stays whole for the runs that have no key.
+# BuildBuddy's cache is partitioned by the dependency graph
+# (--remote_instance_name, a hash of MODULE.bazel and the SwiftPM graph): a
+# Swift SDK's modules aren't a compile's inputs, so one isomer's outputs
+# would otherwise be served to the next's actions of the same key.
 # Never the Apple targets on Linux (.bazelrc's apple_on_linux, which takes
 # Xcode's SDK archive): Apple's SDKs may not be redistributed, so CI builds
 # the Apple targets on GitHub's Macs with their own Xcode (the owner,
@@ -94,8 +98,18 @@ setup)
         secret_rc="$secret_dir/buildbuddy.bazelrc"
         (umask 077 && : > "$secret_rc")
         chmod 600 "$secret_rc"
+        # BuildBuddy's cache partitioned by the dependency graph (MODULE.bazel
+        # and the SwiftPM graph): the Swift SDKs' modules aren't among a
+        # compile's inputs, so after an isomer bump an action's key can be
+        # what it was before it, and its old output (compiled against the old
+        # Foundation) was served stale (a dry run of isomer 0.55.1 to 0.56.1:
+        # the Android app's link failed). The disk cache GitHub keeps is
+        # restored by the same graph alone (.github/actions/bazel_cache).
+        graph="$(cat "$ROOT/MODULE.bazel" "$ROOT"/third_party/swift_packages/Package.resolved 2> /dev/null |
+            { if command -v sha256sum > /dev/null; then sha256sum; else shasum -a 256; fi; } | cut -c1-16)"
         {
             echo "common --config=buildbuddy"
+            echo "common --remote_instance_name=playground-$graph"
             printf 'common --remote_header=x-buildbuddy-api-key=%s\n' "$BUILDBUDDY_API_KEY"
             printf 'common --bes_header=x-buildbuddy-api-key=%s\n' "$BUILDBUDDY_API_KEY"
             if [ $writer -eq 1 ]; then
