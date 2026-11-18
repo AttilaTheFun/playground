@@ -37,14 +37,14 @@ variant_infoplist(
 
 # The compile-against/link-with SDK: the slim `SwiftUI` module + the iso_hot
 # bridge and their transitive wasm32 archives, bundled with a manifest, and
-# the wasm Swift SDK's Foundation (Isomer's since isomer 0.56; @isomer//:foundation
-# before), which every compiler the app may carry then finds the same.
+# the wasm Swift SDK's Foundation, CoreGraphics and Combine (Isomer's; the
+# bundle carries them since isomer 0.57), which every compiler the app may
+# carry then finds the same.
 wasm_sdk_bundle(
     name = "playground_sdk",
     platform = "@isomer//swift_ffi/rules:wasm32-wasip1",
     deps = [
         "@isomer//shared/platform_services",
-        "//shared/compiler:wasm_sdk_foundation",
         "@isomer//wasm/libraries/hot_swift_ui:hot_bridge_network",
         "@isomer//wasm/libraries/hot_swift_ui:isomer",
     ],

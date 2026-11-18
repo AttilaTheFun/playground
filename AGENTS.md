@@ -71,7 +71,8 @@ paths rewritten to the root; commits before 0.35 are isomer's alone).
   (since isomer 0.56: MODULE.bazel registers Isomer's Swift SDKs, the plain
   ones, from AttilaTheFun/isomer_hermetic_toolchains), so nothing depends on
   a Foundation; the Playground SDK carries the wasm SDK's for the apps'
-  compilers (`//shared/compiler:wasm_sdk_foundation`). Run Bazel from the
+  compilers (isomer's `wasm_sdk_bundle` takes it from the registered SDK,
+  since isomer 0.57; the Playground's own rule did before). Run Bazel from the
   repository's root.
 - **Signing is the builder's**: an iPhone build takes its Apple team from
   `ISOMER_TEAM_ID` (`common --repo_env=ISOMER_TEAM_ID=<team>` in an untracked
