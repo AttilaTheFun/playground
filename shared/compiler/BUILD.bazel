@@ -1,4 +1,4 @@
-load(":toolchain.bzl", "playground_toolchain", "wasm_sdk_foundation", "wasm_swift_sdk_files")
+load(":toolchain.bzl", "playground_toolchain", "wasm_swift_sdk_files")
 
 # What every Playground that carries its compiler shares: the arguments of a
 # project's build (CompilerArguments), the SDK a project compiles against
@@ -33,14 +33,5 @@ playground_toolchain(
 
 wasm_swift_sdk_files(
     name = "wasm_sdk_files",
-    tags = ["manual"],
-)
-
-# The wasm Swift SDK's Foundation (Isomer's, since isomer 0.56), which the
-# Playground SDK carries for every compiler a Playground has
-# (toolchain.bzl says why).
-wasm_sdk_foundation(
-    name = "wasm_sdk_foundation",
-    files = [":wasm_sdk_files"],
     tags = ["manual"],
 )

@@ -15,12 +15,12 @@ module(
     version = "0.48.0",
 )
 
-bazel_dep(name = "isomer", version = "0.56.1")
+bazel_dep(name = "isomer", version = "0.57.1")
 
 # Isomer's AndroidX, a module of its own since isomer 0.54 (isomer's
 # docs/android_maven.md): the Playground's Android apps take Isomer's set
 # (`@isomer//android/maven:androidx` at its default), so they need it.
-bazel_dep(name = "isomer_android_maven", version = "0.56.1")
+bazel_dep(name = "isomer_android_maven", version = "0.57.1")
 
 # --- What isomer needs from its consumer -------------------------------
 
@@ -58,7 +58,8 @@ swift.toolchain(
 # takes the -i18n ones (swift-6.4.2-RELEASE_<platform>-i18n.artifactbundle.tar.gz,
 # their sha256 in isomer_hermetic_toolchains' release notes). The
 # Playground SDK a project compiles against carries the wasm one's
-# Foundation (apple/playground_ios_application:playground_sdk).
+# Foundation (apple/playground_ios_application:playground_sdk: isomer's
+# wasm_sdk_bundle takes it from the registered SDK since isomer 0.57).
 swift.wasm_sdk(
     url = "https://github.com/AttilaTheFun/isomer_hermetic_toolchains/releases/download/isomer-6.4.2.1/swift-6.4.2-RELEASE_wasm.artifactbundle.tar.gz",
     sha256 = "3dbfc93e5c91e92d197e3660a488fd580133200df75bcaca90f3b50c5782ae93",
