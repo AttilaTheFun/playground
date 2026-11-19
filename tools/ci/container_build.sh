@@ -110,7 +110,10 @@ elif [ $# -eq 0 ] || [ "$*" = all ] || [ "$*" = pr ]; then
     if has web; then
         apps+=(//web/playground_web_application //web/splash_web_application:site)
     fi
-    has android && apps+=(//android/playground_android_application:playground_android_application_apk)
+    # With Android's, the release jobs' tools (build_tools' sign and what it
+    # runs), built where the release jobs build them: a pull request that
+    # breaks them fails here, not at a release.
+    has android && apps+=(//android/playground_android_application:playground_android_application_apk //tools/ci_tools:all)
     has linux && apps+=(//linux/playground_linux_application)
     set -- --ios_multi_cpus=sim_arm64 ${apps[@]+"${apps[@]}"}
 fi

@@ -12,6 +12,7 @@
 /tools/playground/package_site.sh @AttilaTheFun
 /tools/playground/stamp.py @AttilaTheFun
 /tools/signing/ @AttilaTheFun
+/tools/ci_tools/ @AttilaTheFun
 /tools/ci/attach_release.sh @AttilaTheFun
 /tools/ci/check_mac_icons.sh @AttilaTheFun
 /tools/ci/check_version_line.sh @AttilaTheFun
@@ -20,10 +21,8 @@
 /tools/ci/stamp_apps.sh @AttilaTheFun
 /tools/ci/version_from_tags.sh @AttilaTheFun
 /tools/ci/verified.sh @AttilaTheFun
-# Signing, in the job, with the release environment's keys.
-/tools/ci/android_sign.sh @AttilaTheFun
-/tools/ci/apple_sign.sh @AttilaTheFun
-/tools/ci/apple_profiles.py @AttilaTheFun
+# Signing, in the job, with the release environment's keys (build_tools'
+# `sign`, and what it runs: tools/ci_tools).
 /tools/ci/sign_builds.sh @AttilaTheFun
 # Bazel's settings in CI, BuildBuddy's key among them.
 /tools/ci/ci_bazel.sh @AttilaTheFun

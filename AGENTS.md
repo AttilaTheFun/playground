@@ -155,7 +155,9 @@ paths rewritten to the root; commits before 0.35 are isomer's alone).
   `verify` (the builds and the tests, no proof), `proof` (the screenshot
   proof alone, ahead of a release), `prerelease` and `release` (the
   release's with verify and the proof; the Alphas, signed in the job with
-  the `release` environment's keys, `tools/ci/sign_builds.sh`, and a draft
+  the `release` environment's keys, `tools/ci/sign_builds.sh` with
+  AttilaTheFun/build_tools' `sign`, built before the keys are in a step's
+  environment (`//tools/ci_tools`), and a draft
   release: CI's, never an agent's). Publishing a release signs its Alphas
   again as Production, Android's built for production, and attaches its
   assets. There is no adhoc run.
