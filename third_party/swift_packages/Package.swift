@@ -18,6 +18,6 @@ let package = Package(
         // jobs: `sign` (an APK, a Mac app, an iPhone app, with the release
         // environment's keys) and `proof-diff`. CI's alone: no app depends
         // on it.
-        .package(url: "https://github.com/AttilaTheFun/build_tools.git", exact: "0.4.0"),
+        .package(url: "https://github.com/AttilaTheFun/build_tools.git", exact: "0.4.1"),
     ]
 )
