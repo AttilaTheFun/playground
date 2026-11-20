@@ -24,9 +24,10 @@ final class AppleHost: PlaygroundHostService, @unchecked Sendable {
     func capabilities() -> String {
         #if os(iOS)
         // "engines": a build runs on WasmKit or in a web view (AppleRun.Engine).
-        "projects,sign-in,engines"
+        // "timings": a run can show its engine's timings (AppleRunSurface).
+        "projects,sign-in,engines,timings"
         #else
-        "projects,sign-in"
+        "projects,sign-in,timings"
         #endif
     }
 

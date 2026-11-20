@@ -490,6 +490,9 @@ struct SettingsSheet: View {
     /// What runs a build in the app (a host with the "engines" capability:
     /// the iPhone's AppleRun.Engine reads it).
     @AppStorage("playground.engine") private var engine = "wasmKit"
+    /// Whether a run shows its engine's timings over it (a host with the
+    /// "timings" capability). Off by default.
+    @AppStorage("playground.showTimings") private var showTimings = false
 
     var body: some View {
         NavigationStack {
@@ -541,17 +544,26 @@ struct SettingsSheet: View {
                         Text("Any OpenRouter model id that supports tools, e.g. anthropic/claude-sonnet-5, openai/gpt-5.2, z-ai/glm-5.")
                     }
                 }
-                if hasProjects, PlaygroundHost.service?.supports("engines") == true {
+                if hasProjects, PlaygroundHost.service?.supports("engines") == true
+                    || PlaygroundHost.service?.supports("timings") == true {
                     Section {
-                        Picker("Engine", selection: $engine) {
-                            Text("WasmKit (interpreter)").tag("wasmKit")
-                            Text("Web view (JIT)").tag("webView")
+                        if PlaygroundHost.service?.supports("engines") == true {
+                            Picker("Engine", selection: $engine) {
+                                Text("WasmKit (interpreter)").tag("wasmKit")
+                                Text("Web view (JIT)").tag("webView")
+                            }
+                            .accessibilityIdentifier("run-engine")
                         }
-                        .accessibilityIdentifier("run-engine")
+                        if PlaygroundHost.service?.supports("timings") == true {
+                            Toggle("Show timings", isOn: $showTimings)
+                                .accessibilityIdentifier("show-timings")
+                        }
                     } header: {
                         Text("Run")
                     } footer: {
-                        Text("What runs a build in the app; the app draws it either way. The web view runs it with WebKit's JIT, out of sight. Run in Safari draws it in the browser instead. The next run takes the change.")
+                        Text(PlaygroundHost.service?.supports("engines") == true
+                            ? "What runs a build in the app; the app draws it either way. The web view runs it with WebKit's JIT, out of sight. Run in Safari draws it in the browser instead. The next run takes the change. Show timings puts the engine's first frame and event-to-frame times under a run."
+                            : "Show timings puts the engine's first frame and event-to-frame times under a run.")
                     }
                 }
                 if hasProjects {
