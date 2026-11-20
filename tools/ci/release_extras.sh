@@ -3,7 +3,7 @@
 # workflow's `release` job (when the owner publishes a GitHub release: a
 # v0.47.N tag on a main commit). The signed builds (Playground-<version>-ios.ipa,
 # -macos.zip and -macos.dmg, -android.apk, and builds.json) are signed in
-# the job (tools/ci/sign_builds.sh) and attached by attach_release.sh, as
+# the job (build_tools' `sign`) and attached by attach_release.sh, as
 # Applications reads them (the private AttilaTheFun/applications'
 # docs/RELEASE_ASSETS.md). The proof (proof.zip, Reviews' format 2) and the
 # site (playground-site.tar.gz, which pages.yml deploys) are attached to the

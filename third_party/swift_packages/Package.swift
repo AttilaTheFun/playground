@@ -2,7 +2,7 @@
 // The SwiftPM manifest rules_swift_package_manager consumes: isomer's Swift
 // (its Foundation and frameworks off Apple, SwiftUI) by the release's tag,
 // AgentUI (the agent page) and UpdateKit (the iPhone and Mac apps tell
-// Applications the build they are), each by version.
+// Applications the build they are), each by version; build_tools, CI's.
 import PackageDescription
 
 let package = Package(
@@ -14,5 +14,10 @@ let package = Package(
         // (MarkdownViews), shared with the other apps that render Markdown.
         .package(url: "https://github.com/AttilaTheFun/agent_ui.git", exact: "0.39.1"),
         .package(url: "https://github.com/AttilaTheFun/update_kit.git", exact: "0.11.0"),
+        // build_tools: CI's shared tools, built here and run by the release
+        // jobs: `sign` (an APK, a Mac app, an iPhone app, with the release
+        // environment's keys) and `proof-diff`. CI's alone: no app depends
+        // on it.
+        .package(url: "https://github.com/AttilaTheFun/build_tools.git", exact: "0.4.1"),
     ]
 )
