@@ -30,7 +30,8 @@ final class AppleRun {
     }
 
     private(set) var current: Current?
-    /// The run's engine's timings (TimedEngine), shown over the run.
+    /// The run's engine's timings (TimedEngine), shown over the run when
+    /// Settings' "Show timings" is on.
     private(set) var timings: EngineTimings?
 
     /// What runs a build: WasmKit's interpreter, or (on the iPhone) WebKit's
@@ -248,6 +249,9 @@ final class AppleRun {
 struct AppleRunSurface: View {
     let onStopped: () -> Void
     private var run = AppleRun.shared
+    /// Settings' "Show timings": off unless asked for, so a run's pictures
+    /// don't carry numbers that change from run to run.
+    @AppStorage("playground.showTimings") private var showTimings = false
 
     init(onStopped: @escaping () -> Void) { self.onStopped = onStopped }
 
@@ -269,7 +273,7 @@ struct AppleRunSurface: View {
                 }
                 .id(current.id)
                 .overlay(alignment: .bottom) {
-                    if let timings = run.timings {
+                    if showTimings, let timings = run.timings {
                         Text(timings.summary)
                             .font(.caption2.monospacedDigit())
                             .padding(.horizontal, 8)
