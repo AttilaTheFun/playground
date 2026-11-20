@@ -38,7 +38,7 @@
 #   commit of main, or, to bisect a regression, on a branch pushed at an
 #   earlier one); prerelease (main: the Alphas, alpha-apple and alpha,
 #   signed with the `release` environment's keys and drafted,
-#   tools/ci/sign_builds.sh); release (main: verify's jobs and the proof,
+#   build_tools' `sign`); release (main: verify's jobs and the proof,
 #   then the Alphas and a draft proposed for release; the one run that
 #   proves and verifies at once, which tools/ci/verified.sh asks for).
 #   There is no adhoc run: a branch's builds are experiments only (the
@@ -84,13 +84,13 @@ permissions:
   contents: read
 # What the publishing jobs build (flags as --name=value): the iPhone and
 # iPad app (a device build, signed ad hoc with a placeholder profile by
-# --config=ci_device, which tools/ci/sign_builds.sh signs again with the
+# --config=ci_device, which build_tools' `sign apple` signs again with the
 # bundle id's own) and the Mac app on a Mac, both optimized and with the
 # compiler linked in (--define=iso_playground_embedded=1, the device's
 # staged first); Android's (its android_binary's .apk, its staged compiler
 # inside) on Linux; the web site packaged by tools/playground/package_site.sh.
 # The Android release key's name and its certificate's SHA-256, pinned
-# (tools/ci/android_sign.sh): the APK is left unsigned, with a warning,
+# (build_tools' `sign android`): the APK is left unsigned, with a warning,
 # until the pin is filled in here.
 env:
   PUBLISHED_APPLE: >-
@@ -470,7 +470,7 @@ jobs:
 
   alpha:
     # The proposal: Android's Alpha and the site built, every build signed
-    # (tools/ci/sign_builds.sh: a platform whose keys aren't set is
+    # (build_tools' `sign`: a platform whose keys aren't set is
     # skipped, saying so), the draft made with the site and the builds
     # attached (tools/ci/draft_release.sh, attach_release.sh:
     # Playground-<version>-ios.ipa, -macos.zip, -android.apk and builds.json,
@@ -535,11 +535,29 @@ jobs:
       # Nothing is published if the Mac app's icon has no dark appearance.
       - name: The icon's dark appearance
         run: tools/ci/check_mac_icons.sh .ci/packages
-      # The keys reach this step alone.
-      - name: Sign
+      # build_tools' `sign` and what it runs (//tools/ci_tools), built in a
+      # step with no key in its environment (build_tools' README: Bazel's
+      # server and build events see its client's environment), their paths
+      # handed to the signing steps, which run `sign` directly.
+      - name: The signing tools
+        shell: bash
+        run: |
+          bazel build //tools/ci_tools:all
+          base="$(bazel info output_base)" root="$(bazel info execution_root)"
+          for tool in sign rcodesign dmg java apksigner aapt2; do
+            path="$(bazel cquery --output=files "//tools/ci_tools:$tool" | head -1)"
+            [ -n "$path" ] || { echo "::error::no $tool"; exit 1; }
+            case "$path" in external/*) path="$base/$path" ;; *) path="$root/$path" ;; esac
+            echo "BUILD_TOOLS_${tool^^}=$path" >> "$GITHUB_ENV"
+          done
+      # The keys reach these steps alone, each its own platform's. The Apple
+      # apps, named <App>-<version>-<platform>.<ext>, each line of
+      # builds.json written (the Mac's icon beside it); an ad hoc profile
+      # where a distribution identity is set, else development's.
+      # A platform whose keys aren't set is skipped, saying so in the
+      # summary.
+      - name: Sign the Apple apps
         env:
-          ANDROID_SIGNING_KEYSTORE: ${{ secrets.ANDROID_SIGNING_KEYSTORE }}
-          ANDROID_SIGNING_PASSWORD: ${{ secrets.ANDROID_SIGNING_PASSWORD }}
           APPLE_DEVELOPER_ID_P12: ${{ secrets.APPLE_DEVELOPER_ID_P12 }}
           APPLE_DEVELOPER_ID_PASSWORD: ${{ secrets.APPLE_DEVELOPER_ID_PASSWORD }}
           APPLE_NOTARY_KEY: ${{ secrets.APPLE_NOTARY_KEY }}
@@ -549,9 +567,23 @@ jobs:
           APPLE_DEVELOPMENT_PASSWORD: ${{ secrets.APPLE_DEVELOPMENT_PASSWORD }}
           APPLE_PROFILES: ${{ secrets.APPLE_PROFILES }}
         run: >-
-          tools/ci/sign_builds.sh --variant Alpha --app Playground --out "$RUNNER_TEMP/assets"
-          --ipa-kind development --android-key "$ANDROID_KEY" --android-pin "$ANDROID_PIN"
-          .ci/packages/*.ipa .ci/packages/*.zip .ci/packages/*.apk
+          "$BUILD_TOOLS_SIGN" apple --key-from-env --rcodesign "$BUILD_TOOLS_RCODESIGN"
+          --app Playground --ipa-kind ad-hoc,development --skip-missing-keys
+          --builds "$RUNNER_TEMP/assets/builds.json" --commit "$GITHUB_SHA" --out "$RUNNER_TEMP/assets"
+          .ci/packages/*.ipa .ci/packages/*.zip
+      # Android's: its release key, its certificate pinned (ANDROID_PIN),
+      # named <App>-<versionName>-android.apk; skipped, saying so in the
+      # summary, when the key isn't set.
+      - name: Sign the Android app
+        env:
+          ANDROID_SIGNING_KEYSTORE: ${{ secrets.ANDROID_SIGNING_KEYSTORE }}
+          ANDROID_SIGNING_PASSWORD: ${{ secrets.ANDROID_SIGNING_PASSWORD }}
+        run: >-
+          "$BUILD_TOOLS_SIGN" android --key-from-env --app "$ANDROID_KEY" --pin "$ANDROID_PIN"
+          --java "$BUILD_TOOLS_JAVA" --apksigner "$BUILD_TOOLS_APKSIGNER" --aapt2 "$BUILD_TOOLS_AAPT2"
+          --name Playground --variant Alpha --skip-missing-keys
+          --out "$RUNNER_TEMP/assets" --builds "$RUNNER_TEMP/assets/builds.json" --commit "$GITHUB_SHA"
+          .ci/packages/*.apk
       # A release's proof (this run's `proof`, Reviews' format 2), zipped
       # among the draft's assets as proof.zip: the release keeps it, and
       # Reviews compares the next release's with it.
@@ -612,8 +644,8 @@ jobs:
     # When the owner publishes a GitHub release (its v0.48.N tag on a main
     # commit, whose proof is in): the iPhone's and the Mac's Alphas its
     # proposal attached (the builds the owner tested) stamped Production and
-    # signed again (tools/ci/release_alphas.sh, sign_builds.sh --variant
-    # Production; the Mac's with its disk image), Android's built for
+    # signed again (tools/ci/release_alphas.sh, `sign apple --variant
+    # Production`; the Mac's with its disk image), Android's built for
     # production and signed, and the signed builds attached in place of the
     # Alphas (tools/ci/attach_release.sh), then the iPhone app for the
     # simulator (tools/ci/release_extras.sh).
@@ -669,11 +701,32 @@ jobs:
         run: >-
           tools/ci/container_build.sh package .ci/android --config=prod --compilation_mode=opt
           //android/playground_android_application:playground_android_application_apk
-      # The keys reach this step alone.
-      - name: Sign
+      # build_tools' `sign` and what it runs (//tools/ci_tools), built in a
+      # step with no key in its environment (build_tools' README: Bazel's
+      # server and build events see its client's environment), their paths
+      # handed to the signing steps, which run `sign` directly.
+      - name: The signing tools
+        shell: bash
+        run: |
+          bazel build //tools/ci_tools:all
+          base="$(bazel info output_base)" root="$(bazel info execution_root)"
+          for tool in sign rcodesign dmg java apksigner aapt2; do
+            path="$(bazel cquery --output=files "//tools/ci_tools:$tool" | head -1)"
+            [ -n "$path" ] || { echo "::error::no $tool"; exit 1; }
+            case "$path" in external/*) path="$base/$path" ;; *) path="$root/$path" ;; esac
+            echo "BUILD_TOOLS_${tool^^}=$path" >> "$GITHUB_ENV"
+          done
+      # The keys reach these steps alone, each its own platform's. The Apple
+      # apps, named <App>-<version>-<platform>.<ext>, each line of
+      # builds.json written (the Mac's icon beside it); an ad hoc profile
+      # where a distribution identity is set, else development's.
+      # Production: each app's BuildVariant made Production as it is signed
+      # again (the proposal's tested Alphas promoted), the Mac's disk image
+      # beside it.
+      # A key not set fails the release, never publishing it without
+      # that platform's app.
+      - name: Sign the Apple apps
         env:
-          ANDROID_SIGNING_KEYSTORE: ${{ secrets.ANDROID_SIGNING_KEYSTORE }}
-          ANDROID_SIGNING_PASSWORD: ${{ secrets.ANDROID_SIGNING_PASSWORD }}
           APPLE_DEVELOPER_ID_P12: ${{ secrets.APPLE_DEVELOPER_ID_P12 }}
           APPLE_DEVELOPER_ID_PASSWORD: ${{ secrets.APPLE_DEVELOPER_ID_PASSWORD }}
           APPLE_NOTARY_KEY: ${{ secrets.APPLE_NOTARY_KEY }}
@@ -683,9 +736,23 @@ jobs:
           APPLE_DEVELOPMENT_PASSWORD: ${{ secrets.APPLE_DEVELOPMENT_PASSWORD }}
           APPLE_PROFILES: ${{ secrets.APPLE_PROFILES }}
         run: >-
-          tools/ci/sign_builds.sh --variant Production --app Playground --out "$RUNNER_TEMP/assets"
-          --ipa-kind production --dmg --android-key "$ANDROID_KEY" --android-pin "$ANDROID_PIN"
-          "$RUNNER_TEMP"/alphas/* .ci/android/*.apk
+          "$BUILD_TOOLS_SIGN" apple --key-from-env --rcodesign "$BUILD_TOOLS_RCODESIGN"
+          --app Playground --ipa-kind ad-hoc,development
+          --variant Production --dmg "$BUILD_TOOLS_DMG"
+          --builds "$RUNNER_TEMP/assets/builds.json" --commit "$GITHUB_SHA" --out "$RUNNER_TEMP/assets"
+          "$RUNNER_TEMP"/alphas/*
+      # Android's: its release key, its certificate pinned (ANDROID_PIN),
+      # named <App>-<versionName>-android.apk; a key not set fails the release.
+      - name: Sign the Android app
+        env:
+          ANDROID_SIGNING_KEYSTORE: ${{ secrets.ANDROID_SIGNING_KEYSTORE }}
+          ANDROID_SIGNING_PASSWORD: ${{ secrets.ANDROID_SIGNING_PASSWORD }}
+        run: >-
+          "$BUILD_TOOLS_SIGN" android --key-from-env --app "$ANDROID_KEY" --pin "$ANDROID_PIN"
+          --java "$BUILD_TOOLS_JAVA" --apksigner "$BUILD_TOOLS_APKSIGNER" --aapt2 "$BUILD_TOOLS_AAPT2"
+          --name Playground --variant Production
+          --out "$RUNNER_TEMP/assets" --builds "$RUNNER_TEMP/assets/builds.json" --commit "$GITHUB_SHA"
+          .ci/android/*.apk
       - name: The signed builds, attached
         env:
           GH_TOKEN: ${{ github.token }}
