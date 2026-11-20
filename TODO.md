@@ -102,3 +102,5 @@ it, at 0.47.)
   archives uploaded to this repository's `compilers` release,
   `tools/ci/publish_compilers.sh`, and their SHA-256s in
   `tools/ci/stage_playground_compilers.sh`).
+
+- **Android signing and /dev/shm (2026-11-20):** build_tools 0.4.1's `sign android` writes the signed APK under /dev/shm (its secrets folder), which a GitHub job container gives 64 MB, so the alpha and release containers run with `--shm-size=1g`. Drop it once build_tools keeps the APK on disk (sent to the Shireworks session).
