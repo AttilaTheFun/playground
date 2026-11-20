@@ -14,7 +14,9 @@
 #   <cache>/repository, which the workflow keeps in GitHub's cache
 #   (actions/cache, by job and MODULE.bazel), when a cache is named;
 # - GitHub's downloads tried at GitHub, then at Bazel's mirror (GitHub's
-#   release downloads have failed with 504s for hours), each retried;
+#   release downloads have failed with 504s for hours), and Maven Central's
+#   at Central, then at Google's mirror of it (Central has answered 404 for
+#   artifacts it has), each retried: tools/ci/downloader.cfg;
 # - Bazel's tree (--output_user_root) in ISOMER_BAZEL_ROOT when it is set
 #   and can be made: the x86_64 runner's second disk (/mnt), its first
 #   being too small for an Android build's;
@@ -66,10 +68,7 @@ case "${1:-}" in
 setup)
     cache="${2:-${ISOMER_BAZEL_CACHE:-}}"
     mkdir -p "$ROOT/.ci"
-    {
-        echo 'rewrite (github\.com/.*) $1'
-        echo 'rewrite (github\.com/.*) mirror.bazel.build/$1'
-    } > "$ROOT/.ci/downloader.cfg"
+    cp "$ROOT/tools/ci/downloader.cfg" "$ROOT/.ci/downloader.cfg"
     # No bazel-* convenience symlinks in the checkout: rules_swift_package_manager
     # copies a local package with `cp -RL`, which follows them into
     # Bazel's output tree and its dangling links, and fails the fetch.
