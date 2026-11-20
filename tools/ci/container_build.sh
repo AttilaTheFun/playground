@@ -55,7 +55,7 @@
 # Flags as --name=value (--compilation_mode=opt, not -c opt): every argument
 # that doesn't start with "-" is taken for a target. An Android app's files
 # are its .apk (signed by its build with a debug key, which
-# tools/ci/sign_builds.sh replaces with the release key), its unsigned one
+# build_tools' `sign android` replaces with the release key), its unsigned one
 # and its deploy jar; only the first is copied.
 set -euo pipefail
 # Bash 3.2 too: GitHub's Macs have no other (no mapfile, no ${!name}).
@@ -110,7 +110,10 @@ elif [ $# -eq 0 ] || [ "$*" = all ] || [ "$*" = pr ]; then
     if has web; then
         apps+=(//web/playground_web_application //web/splash_web_application:site)
     fi
-    has android && apps+=(//android/playground_android_application:playground_android_application_apk)
+    # With Android's, the release jobs' tools (build_tools' sign and what it
+    # runs), built where the release jobs build them: a pull request that
+    # breaks them fails here, not at a release.
+    has android && apps+=(//android/playground_android_application:playground_android_application_apk //tools/ci_tools:all)
     has linux && apps+=(//linux/playground_linux_application)
     set -- --ios_multi_cpus=sim_arm64 ${apps[@]+"${apps[@]}"}
 fi
