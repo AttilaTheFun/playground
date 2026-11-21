@@ -245,3 +245,7 @@ build:android_release -c opt
 build:android_release --@rules_swift//swift:copt=-Osize
 build:android_release --features=swift.no_embed_debug_module
 build:android_release --@isomer//swift_ffi/rules:jni_exports_only
+
+# TRY (not to merge): Isomer's SwiftProtobuf through the flag, at a target of
+# the Playground's own (third_party:swift_protobuf_own).
+build --@isomer//:swift_protobuf=//third_party:swift_protobuf_own

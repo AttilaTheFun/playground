@@ -27,6 +27,12 @@ bazel_dep(name = "isomer_android_maven", version = "0.59.1")
 # apps load them from it (`@isomer_android//:defs.bzl`).
 bazel_dep(name = "isomer_android", version = "0.59.1")
 
+# TRY (not to merge): isomer at a branch's commit (isomer#286, the
+# `@isomer//:swift_protobuf` flag), its modules from the same commit.
+git_override(module_name = "isomer", remote = "https://github.com/AttilaTheFun/isomer.git", commit = "17f2851b506872ec3cc9c016e340682218668320")
+git_override(module_name = "isomer_android", remote = "https://github.com/AttilaTheFun/isomer.git", commit = "17f2851b506872ec3cc9c016e340682218668320", strip_prefix = "android/module")
+git_override(module_name = "isomer_android_maven", remote = "https://github.com/AttilaTheFun/isomer.git", commit = "17f2851b506872ec3cc9c016e340682218668320", strip_prefix = "android/maven_module")
+
 # --- What isomer needs from its consumer -------------------------------
 
 # rules_swift: isomer's patched version comes from the project's registry

@@ -1,0 +1,7 @@
+# TRY (not to merge): the Playground's "own" SwiftProtobuf for
+# `--@isomer//:swift_protobuf`: the graph's, by a target of this module's.
+alias(
+    name = "swift_protobuf_own",
+    actual = "@swiftpkg_swift_protobuf//:SwiftProtobuf",
+    visibility = ["//visibility:public"],
+)

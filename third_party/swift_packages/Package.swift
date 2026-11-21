@@ -9,7 +9,7 @@ let package = Package(
     name: "playground_swift_packages",
     platforms: [.macOS("15.0")],
     dependencies: [
-        .package(url: "https://github.com/AttilaTheFun/isomer.git", revision: "v0.59.1"),
+        .package(url: "https://github.com/AttilaTheFun/isomer.git", revision: "17f2851b506872ec3cc9c016e340682218668320"),
         // AgentUI 0.39.0, whose Markdown is a product of its own
         // (MarkdownViews), shared with the other apps that render Markdown.
         .package(url: "https://github.com/AttilaTheFun/agent_ui.git", exact: "0.39.1"),
