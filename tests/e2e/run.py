@@ -582,7 +582,8 @@ def ios():
         # The two engines (Settings' Run: WasmKit, or WebKit's JIT in a web view
         # out of sight) run the same build to the same screen: the headless
         # side doesn't depend on the engine. The Counter, run and tapped under
-        # each, its texts compared; the web view's run shows its timings.
+        # each, its texts compared; the web view's run shows its timings
+        # (Settings' Show timings, on for these launches).
         # E2E_WEBVIEW_BENCH: the web view engine in each place it can live
         # (WebViewEngine.place) and under each inactive scheduling policy,
         # WasmKit beside them: the Counter run, tapped five times, its first
@@ -595,7 +596,8 @@ def ios():
                      for placement in ("keyWindow", "above", "behind", "hidden") for policy in ("default", "none")]
             for engine, placement, policy in cells:
                 sh(["xcrun", "simctl", "terminate", udid, IOS_BUNDLE], check_status=False)
-                arguments = ["-playground.engine", engine]
+                # The timings line is off by default (Settings' Show timings).
+                arguments = ["-playground.engine", engine, "-playground.showTimings", "YES"]
                 if engine == "webView":
                     arguments += ["-playground.webViewPlacement", placement, "-playground.webViewInactivePolicy", policy]
                 sh(["xcrun", "simctl", "launch", udid, IOS_BUNDLE] + arguments, env=environment)
@@ -613,7 +615,8 @@ def ios():
         texts = {}
         for engine in ("wasmKit", "webView"):
             sh(["xcrun", "simctl", "terminate", udid, IOS_BUNDLE], check_status=False)
-            sh(["xcrun", "simctl", "launch", udid, IOS_BUNDLE, "-playground.engine", engine], env=environment)
+            sh(["xcrun", "simctl", "launch", udid, IOS_BUNDLE, "-playground.engine", engine,
+                "-playground.showTimings", "YES"], env=environment)
             drive(f"bundle {IOS_BUNDLE}", "sleep 2", "tapany Counter", "sleep 1", "tapany Run", "sleep 25")
             first = drive("apptree")
             drive("tapany Tap me", "sleep 2")
