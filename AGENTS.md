@@ -248,7 +248,7 @@ native platform since 0.38; WAMR is gone.
 - **macOS**: under `WasmView` in a sheet, the SwiftUI tree renderer.
 - **Android**: in its own window and process (`RunActivity`, `:run`) under
   the Android WasmView: WasmKit as a Swift library of its own
-  (isomer's android/libraries/wasm_view:engine_native), which is why a run
+  (isomer_android's wasm_view:engine_native), which is why a run
   has a process of its own (one Swift runtime a process); or in a Chrome tab.
 - **Web**: in the page, on the browser's own WebAssembly engine.
 - **Linux, Windows**: the WasmKit loader's window, a child process.

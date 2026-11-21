@@ -1,4 +1,4 @@
-load("@isomer//tools/android:defs.bzl", "flat_assets", "isomer_android_app")
+load("@isomer_android//:defs.bzl", "flat_assets", "isomer_android_app")
 load("@rules_cc//cc:defs.bzl", "cc_library")
 load("@rules_swift//swift:swift.bzl", "swift_library")
 
@@ -97,13 +97,13 @@ isomer_android_app(
     extra_binary_deps = [
         ":native_toolchain",
         # The wasm engine (WasmKit) the build's window runs a reactor on.
-        "@isomer//android/libraries/wasm_view:engine_native",
+        "@isomer_android//wasm_view:engine_native",
     ],
     label = "Playground",
     icon = "//artwork/playground_icon:ic_launcher.png",
     package = "com.LoganShire.IsomerPlayground",
     services_deps = [
-        "@isomer//android/libraries/wasm_view:wasm_engine_bindings",
+        "@isomer_android//wasm_view:wasm_engine_bindings",
         # (Isomer's AndroidX, browser for Custom Tabs and coroutines among
         # it, the macro gives the services already: @isomer//android/maven.)
     ],
@@ -112,8 +112,8 @@ isomer_android_app(
     swift_library = ":app_swift",
     # A project may fetch over plain HTTP (a dev server on the LAN).
     uses_cleartext_traffic = True,
-    version_code = 49000,
-    version_name = "0.49.0",
+    version_code = 50000,
+    version_name = "0.50.0",
 )
 
 # The host, with the WasmView the run surface embeds (the wasm_view Kotlin
