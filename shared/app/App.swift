@@ -20,6 +20,23 @@ import Isomer
 public enum PlaygroundSurfaces {
     @MainActor public static var run: ((_ onStopped: @escaping () -> Void) -> AnyView)?
     @MainActor public static var codeEditor: ((_ text: Binding<String>, _ fileName: String) -> AnyView)?
+    /// The host's own modifier on the view that shows the run cover, told
+    /// whether the cover is up (the Apple host pauses ShakeKit's shake, the
+    /// cover's way out).
+    @MainActor public static var whileRunning: ((_ content: AnyView, _ running: Bool) -> AnyView)?
+}
+
+/// `PlaygroundSurfaces.whileRunning`, where the host gives one.
+private struct HostWhileRunning: ViewModifier {
+    let running: Bool
+
+    func body(content: Content) -> some View {
+        if let hook = PlaygroundSurfaces.whileRunning {
+            hook(AnyView(content), running)
+        } else {
+            content
+        }
+    }
 }
 
 /// The app: the shell, given what the host can do.
@@ -405,7 +422,7 @@ extension View {
             PlaygroundHost.service?.stop()
             isPresented.wrappedValue = false
         }
-        return fullScreenCoverOrSheet(isPresented: isPresented) {
+        return modifier(HostWhileRunning(running: isPresented.wrappedValue)).fullScreenCoverOrSheet(isPresented: isPresented) {
             ShakeToLeave(message: "Shake your phone — or press Esc — any time to get back here.", onLeave: leave) {
                 RunSurfaceView(onStopped: { isPresented.wrappedValue = false })
                     .frame(maxWidth: .infinity, maxHeight: .infinity)

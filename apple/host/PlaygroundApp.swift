@@ -14,6 +14,10 @@ struct PlaygroundApp: App {
     init() {
         PlaygroundHost.service = AppleHost()
         PlaygroundSurfaces.run = { onStopped in AnyView(AppleRunSurface(onStopped: onStopped)) }
+        // A shake is the run cover's way out, so ShakeKit stands down while
+        // it is up (on the view presenting it: a cover's preferences don't
+        // reach the views behind it).
+        PlaygroundSurfaces.whileRunning = { content, running in AnyView(content.shakeToReportPaused(running)) }
         #if os(iOS)
         PlaygroundSurfaces.codeEditor = { text, fileName in AnyView(CodeEditor(text: text, fileName: fileName)) }
         #endif
@@ -33,8 +37,8 @@ struct PlaygroundApp: App {
     var body: some Scene {
         WindowGroup("Playground") {
             // A shake files an issue here, with a screenshot and the logs,
-            // for someone signed in (ShakeKitScope is in every build's
-            // Info.plist).
+            // for someone signed in to the shared GitHub sign-in on the
+            // device, in a build that carries its keys (CI's).
             PlaygroundRoot().shakeToReport(repository: "AttilaTheFun/playground")
         }
         #if os(macOS)
