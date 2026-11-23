@@ -6,6 +6,7 @@
 import ApplePlatformServices
 import UpdateKit
 import PlatformServices
+import ShakeKit
 import SwiftUI
 
 @main
@@ -30,10 +31,17 @@ struct PlaygroundApp: App {
     }
 
     var body: some Scene {
-        WindowGroup("Playground") { PlaygroundRoot() }
+        WindowGroup("Playground") {
+            // A shake files an issue here, with a screenshot and the logs,
+            // where the build opts in (ShakeKitScope in the Info.plist: CI's
+            // Alphas); elsewhere it does nothing.
+            PlaygroundRoot().shakeToReport(repository: "AttilaTheFun/playground")
+        }
         #if os(macOS)
             .defaultSize(width: 1280, height: 820)
         #endif
+        // Help › Report a Bug… (⌥⌘B), the shake's twin on the Mac.
+        .commands { ShakeKitCommands() }
     }
 }
 
