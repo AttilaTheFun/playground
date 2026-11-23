@@ -33,8 +33,8 @@ struct PlaygroundApp: App {
     var body: some Scene {
         WindowGroup("Playground") {
             // A shake files an issue here, with a screenshot and the logs,
-            // where the build opts in (ShakeKitScope in the Info.plist: CI's
-            // Alphas); elsewhere it does nothing.
+            // for someone signed in (ShakeKitScope is in every build's
+            // Info.plist).
             PlaygroundRoot().shakeToReport(repository: "AttilaTheFun/playground")
         }
         #if os(macOS)

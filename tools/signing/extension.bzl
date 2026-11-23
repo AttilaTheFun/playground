@@ -34,10 +34,11 @@ def _signing_impl(rctx):
     # `stamped_infoplist`), which a public repository never names: what they
     # tell UpdateKit, the distributor's app group and, on a Mac, its bundle
     # ids (comma-separated); and ISOMER_INFOPLIST, the builder's other keys
-    # as a JSON object of strings or arrays of strings (ShakeKit's
-    # `ShakeKitScope`, which turns it on, and the shared GitHub sign-in's
-    # `GitHubShared*`). CI's distribution builds set them from the
-    # repository's secrets; with none, UpdateKit and ShakeKit do nothing.
+    # as a JSON object of strings or arrays of strings (the shared GitHub
+    # sign-in's `GitHubShared*`, which ShakeKit files with when the person is
+    # signed in there). CI's distribution builds set them from the
+    # repository's secrets; with none, UpdateKit does nothing and ShakeKit
+    # signs in on its own.
     group = (rctx.getenv("ISOMER_UPDATE_APP_GROUP", "") or "").strip()
     ids = [i.strip() for i in (rctx.getenv("ISOMER_UPDATE_APPLICATIONS_BUNDLE_IDS", "") or "").split(",") if i.strip()]
     infoplist = _infoplist(rctx.getenv("ISOMER_INFOPLIST", "") or "")

@@ -15,5 +15,9 @@
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
+	<!-- ShakeKit, in every build: a shake files an issue for someone
+	     signed in (apple/host/PlaygroundApp.swift). -->
+	<key>ShakeKitScope</key>
+	<string>public_repo</string>
 </dict>
 </plist>
