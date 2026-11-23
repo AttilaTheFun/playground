@@ -150,8 +150,10 @@ paths rewritten to the root; commits before 0.35 are isomer's alone).
   with their own Xcode. A pull request's `container` and `container-apple`
   build every app and run the tests without a GUI; main's `populate` and
   `populate-apple` build everything into GitHub's cache and BuildBuddy's
-  (`tools/ci/ci_bazel.sh`: the BUILDBUDDY_API_KEY secret reaches main's
-  runs and a release's alone, never a pull request's). By hand (`run:`):
+  (`tools/ci/ci_bazel.sh`: the BUILDBUDDY_API_KEY secret reaches every job
+  on GitHub's runners, a pull request's too, each reading and writing; a
+  fork's pull request, which GitHub gives no secrets, builds on GitHub's
+  cache alone). By hand (`run:`):
   `verify` (the builds and the tests, no proof), `proof` (the screenshot
   proof alone, ahead of a release), `prerelease` and `release` (the
   release's with verify and the proof; the Alphas, signed in the job with
