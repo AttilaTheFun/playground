@@ -36,7 +36,9 @@ def _signing_impl(rctx):
     # ids (comma-separated); and ISOMER_INFOPLIST, the builder's other keys
     # as a JSON object of strings or arrays of strings (the shared GitHub
     # sign-in's `GitHubShared*`, which ShakeKit files with when the person is
-    # signed in there). CI's distribution builds set them from the
+    # signed in there; its GitHubSharedKeychainGroup also goes into the apps'
+    # entitlements, defs.bzl's `shared_signin_entitlements`). CI's
+    # distribution builds set them from the
     # repository's secrets; with none, UpdateKit does nothing and ShakeKit
     # signs in on its own.
     group = (rctx.getenv("ISOMER_UPDATE_APP_GROUP", "") or "").strip()

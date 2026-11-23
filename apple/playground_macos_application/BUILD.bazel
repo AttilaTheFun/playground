@@ -1,6 +1,6 @@
 load("@build_bazel_rules_apple//apple:macos.bzl", "macos_application")
 load("@rules_swift//swift:swift.bzl", "swift_library")
-load("//tools/signing:defs.bzl", "stamped_infoplist")
+load("//tools/signing:defs.bzl", "shared_signin_entitlements", "stamped_infoplist")
 load("//tools/variant:defs.bzl", "variant_infoplist")
 
 # What the apps tell UpdateKit (the distributor's app group and, on a Mac,
@@ -18,12 +18,13 @@ stamped_infoplist(name = "stamped_plist")
 #   bazel build //apple/playground_macos_application
 
 # BuildVariant and the name under its icon (//tools/variant), as the
-# iPhone's; one bundle id for both. No entitlements here: Applications' app
-# group and the shared GitHub sign-in's keychain group come with the
-# Developer ID profile CI signs it with (build_tools' `sign apple` makes the
-# app's entitlements the profile's), as Reviews' Mac app's; without them
-# AppUpdates.start() logs that there is no container, and ShakeKit signs in
-# on its own.
+# iPhone's; one bundle id for both. No entitlements of its own: Applications'
+# app group comes with the Developer ID profile CI signs it with (build_tools'
+# `sign apple`, for an app built with none), as Reviews' Mac app's; without it
+# AppUpdates.start() logs that there is no container. Where the builder sets
+# the shared GitHub sign-in, the app is built with entitlements naming its
+# keychain group and the app groups (tools/signing), which that profile must
+# allow; otherwise ShakeKit signs in on its own.
 variant_infoplist(
     name = "variant_plist",
     display_name = "Playground",
@@ -81,6 +82,10 @@ macos_application(
     app_icons = ["//artwork/playground_icon:app_icon"],
     bundle_id = "com.LoganShire.IsomerPlayground",
     bundle_name = "Playground",
+    entitlements = shared_signin_entitlements(
+        name = "shared_signin_entitlements",
+        bundle_id = "com.LoganShire.IsomerPlayground",
+    ),
     infoplists = [
         "Info.plist",
         ":variant_plist",

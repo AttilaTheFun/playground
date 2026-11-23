@@ -6,7 +6,7 @@ load("@rules_swift//swift:swift.bzl", "swift_library")
 load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
 load("@isomer//tools/wasm:defs.bzl", "assemble_directory", "site_imports_test", "wasm_sdk_bundle")
 load("@isomer_signing//:signing.bzl", "TEAM_ID")
-load("//tools/signing:defs.bzl", "stamped_infoplist")
+load("//tools/signing:defs.bzl", "shared_signin_entitlements", "stamped_infoplist")
 load("//tools/variant:defs.bzl", "variant_infoplist")
 load(":samples.bzl", "playground_sample")
 
@@ -14,6 +14,13 @@ load(":samples.bzl", "playground_sample")
 # its bundle ids) and the builder's other keys (ShakeKit's, the shared GitHub
 # sign-in's), from the builder's environment (tools/signing).
 stamped_infoplist(name = "stamped_plist")
+
+# CI's device build's entitlements, with the shared GitHub sign-in's keychain
+# group where the builder sets it (tools/signing).
+DEVICE_ENTITLEMENTS = shared_signin_entitlements(
+    name = "device_entitlements",
+    src = "Playground.entitlements",
+)
 
 package(default_visibility = ["//visibility:public"])
 
@@ -391,10 +398,12 @@ ios_application(
     # profile grants it when Applications Server signs it again); a local
     # device build under the wildcard profile, which can grant no app group,
     # goes without.
+    # CI's also names the shared GitHub sign-in's keychain group, where it is
+    # set (tools/signing).
     entitlements = select({
-        "//tools/ci_device": "Playground.entitlements",
+        "//tools/ci_device": DEVICE_ENTITLEMENTS,
         "@apple_support//constraints:device": "Playground.wildcard.entitlements",
-        "//conditions:default": "Playground.entitlements",
+        "//conditions:default": DEVICE_ENTITLEMENTS,
     }),
     # CI's device build (--config=ci_device) signs ad hoc with a placeholder
     # profile, which Applications Server replaces with the bundle id's own.
