@@ -192,7 +192,7 @@ struct HostError: Error, CustomStringConvertible {
 
 /// Generic-password strings in the app's keychain.
 enum Keychain {
-    private static let service = "com.LoganShire.IsomerPlayground"
+    private static let service = "com.LoganShire.Playground"
 
     static func get(_ account: String) -> String? {
         let query: [String: Any] = [

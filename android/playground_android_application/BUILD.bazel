@@ -101,7 +101,7 @@ isomer_android_app(
     ],
     label = "Playground",
     icon = "//artwork/playground_icon:ic_launcher.png",
-    package = "com.LoganShire.IsomerPlayground",
+    package = "com.LoganShire.Playground",
     services_deps = [
         "@isomer_android//wasm_view:wasm_engine_bindings",
         # (Isomer's AndroidX, browser for Custom Tabs and coroutines among
