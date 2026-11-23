@@ -15,8 +15,19 @@ makes).
 
 def _signing_impl(rctx):
     team = rctx.getenv("ISOMER_TEAM_ID", "YOUR_TEAM_ID") or "YOUR_TEAM_ID"
+    # What the apps tell UpdateKit (defs.bzl's `update_infoplist`), which a
+    # public repository never names: the distributor's app group and, on a
+    # Mac, its bundle ids (comma-separated). CI's distribution builds set
+    # both from the repository's secrets; with none, UpdateKit does nothing.
+    group = (rctx.getenv("ISOMER_UPDATE_APP_GROUP", "") or "").strip()
+    ids = [i.strip() for i in (rctx.getenv("ISOMER_UPDATE_APPLICATIONS_BUNDLE_IDS", "") or "").split(",") if i.strip()]
     rctx.file("BUILD.bazel", 'exports_files(["signing.bzl"])\n')
-    rctx.file("signing.bzl", 'TEAM_ID = "%s"\n' % team)
+    rctx.file("signing.bzl", "\n".join([
+        'TEAM_ID = "%s"' % team,
+        "UPDATE_APP_GROUP = %s" % repr(group),
+        "UPDATE_APPLICATIONS_BUNDLE_IDS = %s" % repr(ids),
+        "",
+    ]))
 
 _signing = repository_rule(implementation = _signing_impl)
 

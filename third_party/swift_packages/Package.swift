@@ -13,7 +13,7 @@ let package = Package(
         // AgentUI 0.39.0, whose Markdown is a product of its own
         // (MarkdownViews), shared with the other apps that render Markdown.
         .package(url: "https://github.com/AttilaTheFun/agent_ui.git", exact: "0.39.1"),
-        .package(url: "https://github.com/AttilaTheFun/update_kit.git", exact: "0.11.0"),
+        .package(url: "https://github.com/AttilaTheFun/update_kit.git", exact: "0.18.0"),
         // build_tools: CI's shared tools, built here and run by the release
         // jobs: `sign` (an APK, a Mac app, an iPhone app, with the release
         // environment's keys) and `proof-diff`. CI's alone: no app depends

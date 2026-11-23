@@ -454,10 +454,17 @@ jobs:
       # Resources take the one Bazel assembles on this Mac.
       - name: The Playground's compilers
         run: tools/ci/stage_playground_compilers.sh ios-device
+      - name: The distributor's values for UpdateKit are set
+        env:
+          ISOMER_UPDATE_APP_GROUP: ${{ secrets.ISOMER_UPDATE_APP_GROUP }}
+        run: |
+          test -n "$ISOMER_UPDATE_APP_GROUP" || { echo "::error::ISOMER_UPDATE_APP_GROUP is not set: the Alphas' UpdateKit would do nothing"; exit 1; }
       # exec: the runner's cancel reaches the build.
       - name: Build
         env:
           ISOMER_PLATFORMS: apple
+          ISOMER_UPDATE_APP_GROUP: ${{ secrets.ISOMER_UPDATE_APP_GROUP }}
+          ISOMER_UPDATE_APPLICATIONS_BUNDLE_IDS: ${{ secrets.ISOMER_UPDATE_APPLICATIONS_BUNDLE_IDS }}
         run: exec tools/ci/container_build.sh package .ci/packages --config=alpha $PUBLISHED_APPLE
       - uses: actions/upload-artifact@v4
         with:
