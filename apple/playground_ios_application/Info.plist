@@ -13,15 +13,7 @@
 			<string>com.LoganShire.Playground</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>playground</string>
-			</array>
-		</dict>
-		<dict>
-			<key>CFBundleURLName</key>
-			<string>com.LoganShire.Playground.auth</string>
-			<key>CFBundleURLSchemes</key>
-			<array>
-				<string>iso-playground</string>
+				<string>playground-app</string>
 			</array>
 		</dict>
 	</array>
