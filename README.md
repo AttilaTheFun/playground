@@ -90,3 +90,7 @@ The Playground was `examples/{apple,web,android}/playground_*` in isomer
 until Isomer 0.15, then a repository of its own until it came back to
 isomer, as `playground/`, at 0.35 (`examples/playground/` from 0.39), and
 this repository since 0.47, its history from isomer brought with it.
+
+## License
+
+Apache License 2.0 (`LICENSE`), as Isomer's.
