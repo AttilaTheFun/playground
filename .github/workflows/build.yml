@@ -13,11 +13,11 @@
 # `compilers` release (tools/ci/stage_playground_compilers.sh), for the
 # jobs that publish or picture the apps. Bazel's caches are GitHub's
 # (.github/actions/bazel_cache), written by main's builds alone, and
-# BuildBuddy's remote cache, its key the BUILDBUDDY_API_KEY secret (read
-# and write), handed to the cache action's setup alone and only in runs on
-# main and a published release's: never to a pull request or a branch's
-# run, whose scripts could upload with it (tools/ci/ci_bazel.sh: main's
-# push builds and the release jobs write; main's other runs by hand read).
+# BuildBuddy's remote cache, its key the BUILDBUDDY_API_KEY secret, handed
+# to the cache action's setup alone, in every job, before a merge and after
+# (tools/ci/ci_bazel.sh: each reads and writes; main's push builds and the
+# release jobs download every output). A fork's pull request, which GitHub
+# gives no secrets, builds on GitHub's cache alone.
 #
 # - pull requests: container (web, Linux, Android; the required check) and
 #   container-apple (the iPhone and the Mac): every app built, then the
@@ -173,7 +173,7 @@ jobs:
         uses: ./.github/actions/bazel_cache
         with:
           group: ubuntu
-          buildbuddy-api-key: ${{ (github.event_name == 'release' || (github.event_name != 'pull_request' && github.ref == 'refs/heads/main')) && secrets.BUILDBUDDY_API_KEY || '' }}
+          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
       - name: The merged tree, built into the cache
         env:
           ISOMER_EXECUTION_LOGS: ${{ runner.temp }}/execution-logs
@@ -208,7 +208,7 @@ jobs:
         uses: ./.github/actions/bazel_cache
         with:
           group: apple
-          buildbuddy-api-key: ${{ (github.event_name == 'release' || (github.event_name != 'pull_request' && github.ref == 'refs/heads/main')) && secrets.BUILDBUDDY_API_KEY || '' }}
+          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
       - name: The merged tree's Apple apps, built into the cache
         run: exec tools/ci/container_build.sh all
       # The device's compiler, which the published iPhone app links.
@@ -242,7 +242,7 @@ jobs:
       - uses: ./.github/actions/bazel_cache
         with:
           group: ubuntu
-          buildbuddy-api-key: ${{ (github.event_name == 'release' || (github.event_name != 'pull_request' && github.ref == 'refs/heads/main')) && secrets.BUILDBUDDY_API_KEY || '' }}
+          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
       - name: Build, and the tests without a GUI
         run: exec tools/ci/container_build.sh
 
@@ -257,7 +257,7 @@ jobs:
       - uses: ./.github/actions/bazel_cache
         with:
           group: apple
-          buildbuddy-api-key: ${{ (github.event_name == 'release' || (github.event_name != 'pull_request' && github.ref == 'refs/heads/main')) && secrets.BUILDBUDDY_API_KEY || '' }}
+          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
       - name: Build, with this Mac's Xcode
         run: exec tools/ci/container_build.sh
 
@@ -286,7 +286,7 @@ jobs:
       - uses: ./.github/actions/bazel_cache
         with:
           group: ubuntu
-          buildbuddy-api-key: ${{ (github.event_name == 'release' || (github.event_name != 'pull_request' && github.ref == 'refs/heads/main')) && secrets.BUILDBUDDY_API_KEY || '' }}
+          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
       - name: The web and Android apps built
         run: >-
           exec tools/ci/proof.sh --stage build --platform web,android --kind "$PROOF_KIND"
@@ -319,7 +319,7 @@ jobs:
       - uses: ./.github/actions/bazel_cache
         with:
           group: apple
-          buildbuddy-api-key: ${{ (github.event_name == 'release' || (github.event_name != 'pull_request' && github.ref == 'refs/heads/main')) && secrets.BUILDBUDDY_API_KEY || '' }}
+          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
       - name: The iPhone and Mac apps built, with this Mac's Xcode
         run: >-
           exec tools/ci/proof.sh --stage build --platform ios,macos --kind "$PROOF_KIND"
@@ -449,7 +449,7 @@ jobs:
       - uses: ./.github/actions/bazel_cache
         with:
           group: apple
-          buildbuddy-api-key: ${{ (github.event_name == 'release' || (github.event_name != 'pull_request' && github.ref == 'refs/heads/main')) && secrets.BUILDBUDDY_API_KEY || '' }}
+          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
       # The device's compiler, linked into the iPhone's app; the Mac's
       # Resources take the one Bazel assembles on this Mac.
       - name: The Playground's compilers
@@ -520,7 +520,7 @@ jobs:
       - uses: ./.github/actions/bazel_cache
         with:
           group: ubuntu
-          buildbuddy-api-key: ${{ (github.event_name == 'release' || (github.event_name != 'pull_request' && github.ref == 'refs/heads/main')) && secrets.BUILDBUDDY_API_KEY || '' }}
+          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
       # Android's compiler (the APK's) and the browser's (the site's).
       - name: The Playground's compilers
         run: tools/ci/stage_playground_compilers.sh android web
@@ -630,7 +630,7 @@ jobs:
       - uses: ./.github/actions/bazel_cache
         with:
           group: apple
-          buildbuddy-api-key: ${{ (github.event_name == 'release' || (github.event_name != 'pull_request' && github.ref == 'refs/heads/main')) && secrets.BUILDBUDDY_API_KEY || '' }}
+          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
       - name: The Playground's compilers
         run: tools/ci/stage_playground_compilers.sh ios-simulator
       - name: The iPhone's, for the simulator
@@ -701,7 +701,7 @@ jobs:
       - uses: ./.github/actions/bazel_cache
         with:
           group: ubuntu
-          buildbuddy-api-key: ${{ (github.event_name == 'release' || (github.event_name != 'pull_request' && github.ref == 'refs/heads/main')) && secrets.BUILDBUDDY_API_KEY || '' }}
+          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
       - name: The Playground's compilers
         run: tools/ci/stage_playground_compilers.sh android
       - name: Android's, for production
