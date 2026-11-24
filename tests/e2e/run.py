@@ -66,8 +66,8 @@ WORKSPACE = ROOT
 # history before 0.35 (tools/playground/template_history.py). ISOMER, else
 # isomer beside this checkout.
 ISOMER = os.environ.get("ISOMER", os.path.join(os.path.dirname(ROOT), "isomer"))
-ANDROID_PACKAGE = "com.LoganShire.IsomerPlayground"
-IOS_BUNDLE = "com.LoganShire.IsomerPlayground"
+ANDROID_PACKAGE = "com.LoganShire.Playground"
+IOS_BUNDLE = "com.LoganShire.Playground"
 SIMULATOR_TYPE = "iPhone"
 BOARD = "Swipe the board to merge tiles."
 # The web/Android templates (WebTemplate.all) and what each one's page shows

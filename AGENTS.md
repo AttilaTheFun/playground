@@ -7,7 +7,7 @@ code and update this file.
 
 ## What it is
 
-The Playground (com.LoganShire.IsomerPlayground, "Playground"): one SwiftUI
+The Playground (com.LoganShire.Playground, "Playground"): one SwiftUI
 shell on six platforms for writing SwiftUI on the device (an agent writes
 it, or you do), building it there with a Swift compiler the app carries,
 and running it on Isomer. New projects start from its canned examples, the

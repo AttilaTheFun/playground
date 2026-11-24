@@ -10,18 +10,10 @@
 	<array>
 		<dict>
 			<key>CFBundleURLName</key>
-			<string>com.LoganShire.IsomerPlayground</string>
+			<string>com.LoganShire.Playground</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>playground</string>
-			</array>
-		</dict>
-		<dict>
-			<key>CFBundleURLName</key>
-			<string>com.LoganShire.IsomerPlayground.auth</string>
-			<key>CFBundleURLSchemes</key>
-			<array>
-				<string>iso-playground</string>
+				<string>playground-app</string>
 			</array>
 		</dict>
 	</array>

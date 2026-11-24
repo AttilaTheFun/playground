@@ -192,7 +192,7 @@ struct HostError: Error, CustomStringConvertible {
 
 /// Generic-password strings in the app's keychain.
 enum Keychain {
-    private static let service = "com.LoganShire.IsomerPlayground"
+    private static let service = "com.LoganShire.Playground"
 
     static func get(_ account: String) -> String? {
         let query: [String: Any] = [
@@ -227,7 +227,10 @@ enum Keychain {
 /// authentication session, its code exchanged for a user-scoped key.
 @MainActor
 enum OpenRouterSignIn {
-    static let callbackScheme = "iso-playground"
+    /// The app's one link scheme, its own since com.LoganShire.Playground
+    /// (com.LoganShire.IsomerPlayground's were `playground` and
+    /// `iso-playground`): Applications tells the two apps apart by it.
+    static let callbackScheme = "playground-app"
 
     private final class Anchor: NSObject, ASWebAuthenticationPresentationContextProviding {
         var session: ASWebAuthenticationSession?

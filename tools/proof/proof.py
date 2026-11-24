@@ -56,7 +56,7 @@ import argparse, json, os, re, shlex, shutil, subprocess, sys, tempfile, threadi
 
 # The repository's root: the Playground's Bazel module.
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-APP = {"name": "Playground", "bundle": "com.LoganShire.IsomerPlayground"}
+APP = {"name": "Playground", "bundle": "com.LoganShire.Playground"}
 # The Playground's screens: its opening screen, a project open, and two
 # projects built on the device and running (2048; the Pokédex, whose
 # @Observable needs the compiler's macro plugins). Each: its slug, which

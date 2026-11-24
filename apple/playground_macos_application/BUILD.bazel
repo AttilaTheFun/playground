@@ -1,11 +1,12 @@
 load("@build_bazel_rules_apple//apple:macos.bzl", "macos_application")
 load("@rules_swift//swift:swift.bzl", "swift_library")
-load("//tools/signing:defs.bzl", "update_infoplist")
+load("//tools/signing:defs.bzl", "app_entitlements", "stamped_infoplist")
 load("//tools/variant:defs.bzl", "variant_infoplist")
 
-# What the apps tell UpdateKit: the distributor's app group (and, on a
-# Mac, its bundle ids), from the builder's environment (tools/signing).
-update_infoplist(name = "update_plist")
+# What the apps tell UpdateKit (the distributor's app group and, on a Mac,
+# its bundle ids) and the builder's other keys (ShakeKit's, the shared GitHub
+# sign-in's), from the builder's environment (tools/signing).
+stamped_infoplist(name = "stamped_plist")
 
 # The Playground on the Mac: the shared shell (shared/app) against Apple's
 # SwiftUI, with the Apple host (apple/host). It compiles a project with the
@@ -17,15 +18,19 @@ update_infoplist(name = "update_plist")
 #   bazel build //apple/playground_macos_application
 
 # BuildVariant and the name under its icon (//tools/variant), as the
-# iPhone's; one bundle id for both. No entitlements here: Applications' app
-# group comes with the Developer ID profile Applications Server signs it
-# with, as Reviews' Mac app's; until then AppUpdates.start() logs that there
-# is no container.
+# iPhone's; one bundle id for both. Its entitlements are the builder's alone
+# (tools/signing's app_entitlements): the app groups (UpdateKit's, the shared
+# GitHub sign-in's) and the shared sign-in's keychain group, which its
+# Developer ID profile must allow (build_tools' `sign apple`); a build with
+# none of them set has none, and then AppUpdates.start() logs that there is
+# no container and ShakeKit does nothing.
 variant_infoplist(
     name = "variant_plist",
     display_name = "Playground",
-    # Its link scheme: how Applications opens it, and links into it.
-    url_scheme = "playground",
+    # Its link scheme: how Applications opens it, and links into it. Its
+    # own since com.LoganShire.Playground (`playground` before), so
+    # Applications tells the new app from the old.
+    url_scheme = "playground-app",
 )
 
 swift_library(
@@ -49,6 +54,9 @@ swift_library(
         # The build it is, written for Applications at launch
         # (apple/host/PlaygroundApp.swift).
         "@swiftpkg_update_kit//:UpdateKit",
+        # Shake (or Help › Report a Bug…) to file an issue, where the build
+        # opts in (apple/host/PlaygroundApp.swift).
+        "@swiftpkg_shake_kit//:ShakeKit",
     ],
 )
 
@@ -73,12 +81,16 @@ filegroup(
 macos_application(
     name = "playground_macos_application",
     app_icons = ["//artwork/playground_icon:app_icon"],
-    bundle_id = "com.LoganShire.IsomerPlayground",
+    bundle_id = "com.LoganShire.Playground",
     bundle_name = "Playground",
+    entitlements = app_entitlements(
+        name = "app_entitlements",
+        bundle_id = "com.LoganShire.Playground",
+    ),
     infoplists = [
         "Info.plist",
         ":variant_plist",
-        ":update_plist",
+        ":stamped_plist",
     ],
     minimum_os_version = "15.0",
     resources = [
