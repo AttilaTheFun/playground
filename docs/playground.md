@@ -155,7 +155,7 @@ stamped with the app build and redone after an app update.
 - **Sign-in splash** until a model provider is linked: a provider picker
   (OpenRouter / Anthropic) + an API-key field + Continue. Keys live in the
   Keychain (`Auth.swift`). OpenRouter's OAuth PKCE flow is implemented too
-  (`AuthStore.signInWithOpenRouter`, callback `playground-app://auth`) but
+  (`AuthStore.signInWithOpenRouter`, callback `playground://auth`) but
   not on the splash — in testing the web view never reached the approval
   screen, and a pasted key with a spending limit is the simpler story. A claude.ai subscription cannot be used by a
   third-party app (Anthropic does not allow third parties to offer claude.ai
@@ -255,7 +255,7 @@ Playground and in every example app.
 
 ## Deep links
 
-`playground-app://project/<id>` opens that project's last successful build
+`playground://project/<id>` opens that project's last successful build
 (`Documents/Projects/<id>/build.wasm`, saved on every build) full screen
 with the services injected; the preview's "…" menu offers "Open full
 screen" and "Share link". Relaunching without a link returns to the main UI.

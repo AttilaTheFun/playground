@@ -13,7 +13,7 @@
 			<string>com.LoganShire.Playground</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>playground-app</string>
+				<string>playground</string>
 			</array>
 		</dict>
 	</array>
