@@ -43,6 +43,11 @@ def _signing_impl(rctx):
     group = (rctx.getenv("ISOMER_UPDATE_APP_GROUP", "") or "").strip()
     ids = [i.strip() for i in (rctx.getenv("ISOMER_UPDATE_APPLICATIONS_BUNDLE_IDS", "") or "").split(",") if i.strip()]
     infoplist = _infoplist(rctx.getenv("ISOMER_INFOPLIST", "") or "")
+    # Where Shireworks' kit files crash and bug reports: the repository CI
+    # builds (GitHub's GITHUB_REPOSITORY), unless the builder names one.
+    repository = (rctx.getenv("GITHUB_REPOSITORY", "") or "").strip()
+    if repository and "ShireworksRepository" not in infoplist:
+        infoplist["ShireworksRepository"] = repository
     rctx.file("BUILD.bazel", 'exports_files(["signing.bzl"])\n')
     rctx.file("signing.bzl", "\n".join([
         'TEAM_ID = "%s"' % team,
