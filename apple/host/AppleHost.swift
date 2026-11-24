@@ -227,10 +227,9 @@ enum Keychain {
 /// authentication session, its code exchanged for a user-scoped key.
 @MainActor
 enum OpenRouterSignIn {
-    /// The app's one link scheme, its own since com.LoganShire.Playground
-    /// (com.LoganShire.IsomerPlayground's were `playground` and
-    /// `iso-playground`): Applications tells the two apps apart by it.
-    static let callbackScheme = "playground-app"
+    /// The app's one link scheme, `playground` (Applications' Open uses it
+    /// too; the sign-in's callback needs no scheme of its own).
+    static let callbackScheme = "playground"
 
     private final class Anchor: NSObject, ASWebAuthenticationPresentationContextProviding {
         var session: ASWebAuthenticationSession?

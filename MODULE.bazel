@@ -15,17 +15,17 @@ module(
     version = "0.50.0",
 )
 
-bazel_dep(name = "isomer", version = "0.60.1")
+bazel_dep(name = "isomer", version = "0.61.1")
 
 # Isomer's AndroidX, a module of its own since isomer 0.54 (isomer's
 # docs/android_maven.md): the Playground's Android apps take Isomer's set
 # (`@isomer//android/maven:androidx` at its default), so they need it.
-bazel_dep(name = "isomer_android_maven", version = "0.60.1")
+bazel_dep(name = "isomer_android_maven", version = "0.61.1")
 
 # Android's rules and Isomer's Android macros, a module of their own since
 # isomer 0.59 (isomer's docs/platform_modules.md): the Playground's Android
 # apps load them from it (`@isomer_android//:defs.bzl`).
-bazel_dep(name = "isomer_android", version = "0.60.1")
+bazel_dep(name = "isomer_android", version = "0.61.1")
 
 # --- What isomer needs from its consumer -------------------------------
 
