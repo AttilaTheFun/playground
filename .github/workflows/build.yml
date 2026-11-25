@@ -59,14 +59,19 @@ on:
     # main's commits: populate.
     branches: [main]
   pull_request:
+  # The Apple cache's build (populate-apple), nightly: a public repository
+  # has five macOS runners, which an Apple build on every merge kept from
+  # the pull requests' container-apple.
+  schedule:
+    - cron: "23 8 * * *"
   release:
     types: [published]
   workflow_dispatch:
     inputs:
       run:
-        description: "What to run: verify (the tests, no proof), prerelease or release on main (verify on a branch to bisect); proof (the screenshot proof alone)"
+        description: "What to run: verify (the tests, no proof), prerelease or release on main (verify on a branch to bisect); proof (the screenshot proof alone); populate-apple (the Apple cache's build, as each night) on main"
         type: choice
-        options: [verify, proof, prerelease, release]
+        options: [verify, proof, prerelease, release, populate-apple]
         default: verify
       kind:
         description: The proof's kind
@@ -197,7 +202,7 @@ jobs:
           retention-days: 1
 
   populate-apple:
-    if: github.event_name == 'push'
+    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.run == 'populate-apple')
     runs-on: xcode-27
     timeout-minutes: 180
     env:
