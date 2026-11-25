@@ -5,7 +5,7 @@ guide). It was isomer's examples/playground until 0.47.
 
 isomer comes from the project's registry by version (.bazelrc lists it before
 the BCR), and its Swift through third_party/swift_packages' Package.swift by
-the release's tag; AgentUI and UpdateKit by version there too.
+the release's tag; AgentUI by version there too, Shireworks' kit by revision.
 
     bazel build //apple/playground_ios_application //web/playground_web_application
 """
@@ -256,9 +256,8 @@ use_repo(
     "swift_package",
     "swiftpkg_agent_ui",
     "swiftpkg_build_tools",
-    "swiftpkg_shake_kit",
     "swiftpkg_swift_protobuf",
-    "swiftpkg_update_kit",
+    "swiftpkg_shireworks_kit",
 )
 
 # The generated package repositories see rules_swift_package_manager's

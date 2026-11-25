@@ -1,9 +1,9 @@
 // swift-tools-version: 5.9
 // The SwiftPM manifest rules_swift_package_manager consumes: isomer's Swift
 // (its Foundation and frameworks off Apple, SwiftUI) by the release's tag,
-// AgentUI (the agent page), UpdateKit (the iPhone and Mac apps tell
-// Applications the build they are) and ShakeKit (they file bug reports), each
-// by version; build_tools, CI's.
+// AgentUI (the agent page), by version, and Shireworks' kit (the iPhone and
+// Mac apps tell Applications the build they are, show its update sheet,
+// report crashes and file bug reports), by revision until its 0.1.0; build_tools, CI's.
 import PackageDescription
 
 let package = Package(
@@ -14,12 +14,11 @@ let package = Package(
         // AgentUI 0.39.0, whose Markdown is a product of its own
         // (MarkdownViews), shared with the other apps that render Markdown.
         .package(url: "https://github.com/AttilaTheFun/agent_ui.git", exact: "0.39.1"),
-        .package(url: "https://github.com/AttilaTheFun/update_kit.git", exact: "0.18.0"),
-        // ShakeKit: shake the iPhone (or Help › Report a Bug… on the Mac) to
-        // file an issue with a screenshot and the logs, for someone signed in
-        // to the shared GitHub sign-in on the device; only in builds that
-        // carry its keys (CI's, //tools/signing).
-        .package(url: "https://github.com/AttilaTheFun/shake_kit.git", exact: "0.3.0"),
+        // ShireworksKit: the build it is for Shireworks' Applications, its
+        // update sheet, crash reports, and shake to report for someone signed
+        // in to the shared GitHub sign-in, where the build carries its keys
+        // (CI's, //tools/signing). It replaced UpdateKit and ShakeKit.
+        .package(url: "https://github.com/AttilaTheFun/shireworks_kit.git", revision: "6e61e129ca8ee4bcff16ff17ba1056deaa761928"),
         // build_tools: CI's shared tools, built here and run by the release
         // jobs: `sign` (an APK, a Mac app, an iPhone app, with the release
         // environment's keys) and `proof-diff`. CI's alone: no app depends

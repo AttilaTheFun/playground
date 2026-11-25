@@ -4,9 +4,8 @@
 // starts.
 
 import ApplePlatformServices
-import UpdateKit
 import PlatformServices
-import ShakeKit
+import ShireworksKit
 import SwiftUI
 
 @main
@@ -14,9 +13,9 @@ struct PlaygroundApp: App {
     init() {
         PlaygroundHost.service = AppleHost()
         PlaygroundSurfaces.run = { onStopped in AnyView(AppleRunSurface(onStopped: onStopped)) }
-        // A shake is the run cover's way out, so ShakeKit stands down while
-        // it is up (on the view presenting it: a cover's preferences don't
-        // reach the views behind it).
+        // A shake is the run cover's way out, so the kit's shake stands down
+        // while it is up (on the view presenting it: a cover's preferences
+        // don't reach the views behind it).
         PlaygroundSurfaces.whileRunning = { content, running in AnyView(content.shakeToReportPaused(running)) }
         #if os(iOS)
         PlaygroundSurfaces.codeEditor = { text, fileName in AnyView(CodeEditor(text: text, fileName: fileName)) }
@@ -29,17 +28,16 @@ struct PlaygroundApp: App {
             configuration: NativeConfigurationService(flags: ["promo_banner": true]))
         installPlatformImagePicker(imagePicker: NativeImagePickerService())
         installPlatformDeviceMotion(deviceMotion: NativeDeviceMotionService.shared)
-        // The build it is, written for Applications at each launch; and its
-        // updates, told of while it is in front (UpdateKit).
-        AppUpdates.start()
     }
 
     var body: some Scene {
         WindowGroup("Playground") {
-            // A shake files an issue here, with a screenshot and the logs,
-            // for someone signed in to the shared GitHub sign-in on the
-            // device, in a build that carries its keys (CI's).
-            PlaygroundRoot().shakeToReport(repository: "AttilaTheFun/playground")
+            // Shireworks' kit: the build it is, written for Applications at
+            // each launch, its update sheet, crash reports, and a shake to
+            // file an issue for someone signed in to the shared GitHub
+            // sign-in, where the build carries its keys (CI's:
+            // ShireworksRepository and the rest, //tools/signing).
+            PlaygroundRoot().shireworks()
         }
         #if os(macOS)
             .defaultSize(width: 1280, height: 820)

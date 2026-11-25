@@ -49,12 +49,9 @@ swift_library(
         "@isomer//shared/platform_services",
         "@isomer//swift_ffi/runtime/swift_wasm_host",
         "@swiftpkg_agent_ui//:AgentUI",
-        # The build it is, written for Applications at launch
+        # The build it is, its updates, crash reports and shake to report
         # (apple/host/PlaygroundApp.swift).
-        "@swiftpkg_update_kit//:UpdateKit",
-        # Shake (or Help › Report a Bug…) to file an issue, where the build
-        # opts in (apple/host/PlaygroundApp.swift).
-        "@swiftpkg_shake_kit//:ShakeKit",
+        "@swiftpkg_shireworks_kit//:ShireworksKit",
     ],
 )
 
