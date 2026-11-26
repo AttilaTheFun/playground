@@ -74,12 +74,12 @@ struct PlaygroundApp: App {
             // Projects.
             SidebarCommands()
             #if os(macOS)
-            // View › Search Projects (⌘F): the sidebar's field. Edit › Find
-            // (⌘F too) comes first in the menu bar, so in the code editor,
-            // where it is enabled, ⌘F is still the editor's find bar.
+            // View › Search Projects (⌥⌘F, Mail's and Notes' key for
+            // searching the list): the sidebar's field. ⌘F stays Edit ›
+            // Find's, the code editor's find bar.
             CommandGroup(after: .sidebar) {
                 Button("Search Projects") { focusProjectSearch() }
-                    .keyboardShortcut("f")
+                    .keyboardShortcut("f", modifiers: [.command, .option])
             }
             #endif
             // Help › Report a Bug… (⌥⌘B), the shake's twin on the Mac.
@@ -99,7 +99,7 @@ struct PlaygroundApp: App {
 #if os(macOS)
 /// The sidebar's search field, given the keyboard: NavigationUI's
 /// ListSearchChrome keeps its focus to itself, so it is found in the window
-/// by its prompt (an iPad's is the system's .searchable, which ⌘F isn't
+/// by its prompt (an iPad's is the system's .searchable, which this key isn't
 /// offered for).
 @MainActor
 private func focusProjectSearch() {
