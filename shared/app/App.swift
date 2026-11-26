@@ -52,6 +52,9 @@ public struct PlaygroundRoot: View {
     @State private var showSettings = false
     /// What the sidebar's search narrows the projects to.
     @State private var search = ""
+    /// The project a swipe or the context menu asked to delete, until the
+    /// confirmation answers.
+    @State private var deleting: WebProject?
     @State private var columns: NavigationSplitViewVisibility = .all
     /// A phone's one column: the sidebar (the app's main menu) until
     /// something is opened.
@@ -217,16 +220,17 @@ public struct PlaygroundRoot: View {
                         Label(project.name, systemImage: "app.dashed")
                             .tag(project.id)
                             // Delete as Visor's and Shireworks' rows have it:
-                            // a swipe (never a full one: a project's code
-                            // goes with it) and the context menu.
+                            // a swipe (never a full one) and the context
+                            // menu, each confirmed: a project's code and chat
+                            // go with it, and a right-click is easily missed.
                             .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                Button(role: .destructive) { delete(project: project.id) } label: {
+                                Button(role: .destructive) { deleting = project } label: {
                                     Label("Delete", systemImage: "trash")
                                 }
                                 .accessibilityLabel("Delete \(project.name)")
                             }
                             .contextMenu {
-                                Button(role: .destructive) { delete(project: project.id) } label: {
+                                Button(role: .destructive) { deleting = project } label: {
                                     Label("Delete", systemImage: "trash")
                                 }
                                 .accessibilityLabel("Delete \(project.name)")
@@ -234,6 +238,13 @@ public struct PlaygroundRoot: View {
                     }
                 }
             }
+        }
+        .confirmationDialog("Delete Project?", isPresented: Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } }),
+                            titleVisibility: .visible, presenting: deleting) { project in
+            Button("Delete", role: .destructive) { delete(project: project.id) }
+            Button("Cancel", role: .cancel) {}
+        } message: { project in
+            Text("“\(project.name)”, its code and its chat are deleted. This can't be undone.")
         }
         .overlay(alignment: .center) {
             if hasProjects, store.projects.isEmpty {
