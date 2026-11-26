@@ -233,7 +233,12 @@ extension UITextView: EditableCode {
         set { selectedRange = newValue }
     }
 
-    func replaceCode(with attributed: NSAttributedString) { attributedText = attributed }
+    /// New text whole (a file opened, the agent's rewrite): the undo stack's
+    /// ranges were the old text's, so it goes with it.
+    func replaceCode(with attributed: NSAttributedString) {
+        attributedText = attributed
+        undoManager?.removeAllActions()
+    }
 
     func recolor(with attributed: NSAttributedString) {
         let selection = selectedRange
@@ -353,8 +358,11 @@ extension NSTextView: EditableCode {
         set { setSelectedRange(newValue) }
     }
 
+    /// New text whole (a file opened, the agent's rewrite): the undo stack's
+    /// ranges were the old text's, and ⌘Z would replay them against the new.
     func replaceCode(with attributed: NSAttributedString) {
         textStorage?.setAttributedString(attributed)
+        undoManager?.removeAllActions()
     }
 
     func recolor(with attributed: NSAttributedString) {
