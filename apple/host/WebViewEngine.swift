@@ -1,9 +1,9 @@
 // The Playground's second engine on the iPhone and the Mac: a build run
-// headless in a web view kept out of sight, by WebKit's JavaScript engine (its JIT), and
-// drawn by the app as a WasmKit run is. To WasmView it is any engine
-// (`WasmRuntime`): the run's driver (WasmFeatureRuntime) and its head are
-// the same as WasmKit's, so the two compare engine for engine. The page
-// (web/native_head.html, native_head.js, served with the build by
+// headless in a web view kept out of sight, by WebKit's JavaScript engine
+// (its JIT), and drawn by the app as a WasmKit run is. To WasmView it is
+// any engine (`WasmRuntime`): the run's driver (WasmFeatureRuntime) and its
+// head are the same as WasmKit's, so the two compare engine for engine. The
+// page (web/native_head.html, native_head.js, served with the build by
 // WebRunServer) posts each tree here and runs the calls it is sent.
 //
 // WasmRuntime is synchronous and a web view is not: a call goes to the page
