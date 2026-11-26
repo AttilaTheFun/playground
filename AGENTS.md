@@ -151,7 +151,9 @@ paths rewritten to the root; commits before 0.35 are isomer's alone).
   and Android apps and runs the tests without a GUI; it has no macOS job
   (the owner, 2026-11-13: Apple builds at release verification), so the
   iPhone and Mac apps build in `verify-apple`, or on a branch by hand with
-  `run: container-apple`; main's `populate` (each
+  `run: container-apple`, and a nightly `populate-apple` that fails opens an
+  issue, "Nightly Apple build failed on main" (or comments on the open
+  one); main's `populate` (each
   merge) and `populate-apple` (each night, and by hand with `run:
   populate-apple`: a public repository has five macOS runners, which an
   Apple build on every merge kept from the pull requests') build everything
