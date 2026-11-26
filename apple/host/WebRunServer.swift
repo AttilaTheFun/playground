@@ -1,15 +1,14 @@
-// The web-run half: a tiny in-app HTTP server (Network.framework, the same
-// listener shape as the hot-reload server) serving the bundled playground
-// site — index.html + the react renderer + the generic iso_hot host
-// (hot_host.js) — plus /app.wasm, the LATEST user build. "Run in Safari"
-// opens SFSafariViewController at this server; the page instantiates the
-// reactor with the browser's own WebAssembly engine and mounts it as real
-// DOM through the react renderer.
+// The web-run half on the iPhone and the Mac: a tiny in-app HTTP server
+// (Network.framework, the same listener shape as the hot-reload server)
+// serving the bundled playground site (index.html, the DOM renderer and the
+// generic iso_hot host, hot_host.js) plus /app.wasm, the LATEST user build.
+// "Run on the web" shows its URL in the shared web-run sheet (shared/app's
+// WebRunSheet, the Isomer module's WebView); the page instantiates the
+// reactor with WebKit's own WebAssembly engine and mounts it as real DOM.
+// The web view engine (WebViewEngine) loads its native_head.html from it too.
 
 import Foundation
 import Network
-import SafariServices
-import SwiftUI
 
 final class WebRunServer {
     static let shared = WebRunServer()
@@ -157,27 +156,4 @@ final class WebRunServer {
             connection.cancel()
         })
     }
-}
-
-/// SFSafariViewController, presentable from SwiftUI.
-struct SafariView: UIViewControllerRepresentable {
-    let url: URL
-    /// Its Done button: the presenting SwiftUI state dismisses the cover.
-    var onDone: () -> Void = {}
-
-    func makeCoordinator() -> Coordinator { Coordinator(onDone: onDone) }
-
-    func makeUIViewController(context: Context) -> SFSafariViewController {
-        let controller = SFSafariViewController(url: url)
-        controller.delegate = context.coordinator
-        return controller
-    }
-
-    final class Coordinator: NSObject, SFSafariViewControllerDelegate {
-        let onDone: () -> Void
-        init(onDone: @escaping () -> Void) { self.onDone = onDone }
-        func safariViewControllerDidFinish(_ controller: SFSafariViewController) { onDone() }
-    }
-
-    func updateUIViewController(_ controller: SFSafariViewController, context: Context) {}
 }

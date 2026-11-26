@@ -82,8 +82,6 @@ final class TimedEngine: WasmRuntime {
 
     /// Ends what the engine holds beyond the guest (the web view's page).
     func close() {
-        #if os(iOS)
         (inner as? WebViewEngine)?.close()
-        #endif
     }
 }

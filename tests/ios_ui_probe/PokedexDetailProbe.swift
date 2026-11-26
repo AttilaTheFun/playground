@@ -296,7 +296,7 @@ final class PokedexDetailProbe: XCTestCase {
     }
 
     /// The composer's model pill → Model sheet (Effort row pushes the list),
-    /// then the web run full screen (2048 in SFSafariViewController).
+    /// then the web run (2048 in the shared web-run sheet's WKWebView).
     @MainActor
     func testModelSheet() throws {
         let app = XCUIApplication()

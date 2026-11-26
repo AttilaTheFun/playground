@@ -2,15 +2,14 @@
 // the loopback interface) serving the bundled playground site — the same
 // index.html, react renderer and generic iso_hot host the iOS Playground
 // serves — plus /app.wasm, the latest build, and the project's sandbox; the
-// page is opened in a Chrome Custom Tab, Android's SFSafariViewController.
-// The browser instantiates the reactor with its own WebAssembly engine and
-// mounts it as real DOM through the react renderer.
+// shell shows the page in its web-run sheet (shared/app's WebRunSheet, a
+// WebView), as on the iPhone and the Mac. WebView instantiates the reactor
+// with its own WebAssembly engine and mounts it as real DOM through the DOM
+// renderer.
 
 package dev.isomer.runtime
 
 import android.content.Context
-import android.net.Uri
-import androidx.browser.customtabs.CustomTabsIntent
 import java.io.File
 import java.net.InetAddress
 import java.net.ServerSocket
@@ -47,12 +46,6 @@ class WebRunServer(private val context: Context) {
         // (Logged for tests/e2e, which loads the page from the host.)
         android.util.Log.i("Playground", "[web-run] http://127.0.0.1:$port/index.html")
         return "http://127.0.0.1:$port/index.html"
-    }
-
-    fun open(url: String) {
-        val intent = CustomTabsIntent.Builder().setShowTitle(false).build()
-        intent.intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
-        intent.launchUrl(context, Uri.parse(url))
     }
 
     /** The site from assets/web_site.zip, once per installed build. */
