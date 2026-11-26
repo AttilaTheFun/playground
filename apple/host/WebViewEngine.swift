@@ -106,12 +106,15 @@ final class WebViewEngine: NSObject, WasmRuntime {
         ownWindow = nil
     }
     #else
-    /// On the Mac: 1x1 and nearly transparent in the app's key (or main)
-    /// window, as the iPhone's default: a web view in no window, or in one
-    /// off screen, is a hidden page whose timers WebKit throttles.
+    /// On the Mac: 1x1 and nearly transparent in the app's own window, as
+    /// the iPhone's default: a web view in no window, or in one off screen,
+    /// is a hidden page whose timers WebKit throttles. Not the Settings
+    /// window, though it may be key: closing it would throttle the run.
     private func place(_ view: WKWebView) {
         view.alphaValue = 0.01
-        let window = NSApp.keyWindow ?? NSApp.mainWindow ?? NSApp.windows.first { $0.isVisible }
+        func isSettings(_ window: NSWindow) -> Bool { window.identifier?.rawValue.contains("Settings") == true }
+        let window = [NSApp.mainWindow, NSApp.keyWindow].compactMap { $0 }.first { !isSettings($0) }
+            ?? NSApp.windows.first { $0.isVisible && !isSettings($0) }
         window?.contentView?.addSubview(view)
     }
 
