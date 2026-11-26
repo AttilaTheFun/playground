@@ -20,6 +20,16 @@ struct WebRunSheet: View {
             Isomer.WebView(url: url)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .accessibilityIdentifier("web-run")
+                // Where the page comes from: the app's own server, on this
+                // device alone.
+                .safeAreaInset(edge: .bottom) {
+                    if let url {
+                        Text("\(url.host ?? ""):\(url.port.map(String.init) ?? "")")
+                            .font(.caption.monospaced())
+                            .foregroundColor(.secondary)
+                            .padding(.vertical, 4)
+                    }
+                }
                 .navigationTitle(title)
                 .inlineTitle()
                 .toolbar {
