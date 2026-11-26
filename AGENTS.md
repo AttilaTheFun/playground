@@ -57,7 +57,7 @@ paths rewritten to the root; commits before 0.35 are isomer's alone).
 | `tools/` | `playground_toolchain` (the iOS and Android compilers), `browser_toolchain` (the compiler as WebAssembly), `playground` (dev compile server, headless Chrome drivers, the site's packaging and the hot-reload publish scripts, template history), `ci` (CI's scripts), `proof` (the release's proof), `testing` (cdp.py, isomer's headless Chrome driver), `signing`, `variant`, `ci_device` |
 | `tests/` | `templates` (every template compiles), `e2e` (what a reader does, on an emulator and a simulator), `ios_ui_probe` (a manual XCUITest); the release's proof is `tools/proof/proof.py` |
 | `.github/` | CI (`workflows/build.yml`), the site's deploy (`pages.yml`), the pins check (`pins.yml`), CODEOWNERS |
-| `docs/` | `playground.md` (the iOS app), `playground_web.md` (the web app, the site, publishing) |
+| `docs/` | `playground.md` (the iOS app), `playground_web.md` (the web app, the site, publishing), `platforms.md` (every `#if` left in the Playground's Swift, and why it stays: keep it current) |
 
 - **A Bazel module of its own**, `playground` (since 0.47; part of isomer's
   examples' module before): labels here are `//...`, isomer's
