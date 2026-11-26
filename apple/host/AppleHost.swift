@@ -239,7 +239,11 @@ enum OpenRouterSignIn {
             session.presentationContextProvider = anchor
             session.prefersEphemeralWebBrowserSession = false
             anchor.session = session
-            session.start()
+            // A session that can't start (no window to anchor it) says so
+            // here, never through its handler: answer the sign-in, or it waits.
+            if !session.start() {
+                continuation.resume(throwing: HostError("the sign-in window could not open"))
+            }
         }
         guard let code = URLComponents(url: callback, resolvingAgainstBaseURL: false)?.queryItems?.first(where: { $0.name == "code" })?.value else {
             throw HostError("OpenRouter returned no code")
@@ -253,7 +257,9 @@ enum OpenRouterSignIn {
         let (data, response) = try await URLSession.shared.data(for: request)
         guard (response as? HTTPURLResponse)?.statusCode ?? 500 < 300,
               let key = parseJSON(String(decoding: data, as: UTF8.self))?["key"].string else {
-            throw HostError("key exchange failed: \(String(decoding: data, as: UTF8.self))")
+            // The status alone: the body may carry what OpenRouter echoes of
+            // the request, which an error shown or logged mustn't.
+            throw HostError("key exchange failed (HTTP \((response as? HTTPURLResponse)?.statusCode ?? 0))")
         }
         return key
     }
