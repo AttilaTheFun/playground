@@ -50,7 +50,12 @@ final class WebRunServer {
             self.listener = nil
             port = 0
         }
-        guard let listener = try? NWListener(using: .tcp, on: .any) else { return }
+        // This device alone (127.0.0.1): the sheet's web view is its only
+        // client, and on a shared network nobody else may fetch the build or
+        // the app's resources it serves (nor a Mac's firewall ask).
+        let parameters = NWParameters.tcp
+        parameters.requiredLocalEndpoint = .hostPort(host: "127.0.0.1", port: .any)
+        guard let listener = try? NWListener(using: parameters) else { return }
         listener.newConnectionHandler = { [weak self] connection in
             guard let self else {
                 connection.cancel()
