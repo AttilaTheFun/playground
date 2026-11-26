@@ -147,8 +147,11 @@ paths rewritten to the root; commits before 0.35 are isomer's alone).
   remote cache, signing service or lease). The web, Linux and Android build
   together in Swift's image on x86_64 Ubuntu (`tools/ci/job_tools.sh`,
   `tools/ci/container_build.sh`), the iPhone and the Mac on `xcode-27` Macs
-  with their own Xcode. A pull request's `container` and `container-apple`
-  build every app and run the tests without a GUI; main's `populate` (each
+  with their own Xcode. A pull request's `container` builds the web, Linux
+  and Android apps and runs the tests without a GUI; it has no macOS job
+  (the owner, 2026-11-13: Apple builds at release verification), so the
+  iPhone and Mac apps build in `verify-apple`, or on a branch by hand with
+  `run: container-apple`; main's `populate` (each
   merge) and `populate-apple` (each night, and by hand with `run:
   populate-apple`: a public repository has five macOS runners, which an
   Apple build on every merge kept from the pull requests') build everything
