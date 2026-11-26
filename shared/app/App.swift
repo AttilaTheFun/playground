@@ -63,7 +63,7 @@ public struct PlaygroundRoot: View {
     /// The launch's own selection, which opens no page on a phone.
     @State private var settingFirstSelection = false
     /// The menu commands' requests (New Project), and what they may ask.
-    private var actions = PlaygroundActions.shared
+    private let actions = PlaygroundActions.shared
 
     /// What a launch hook opens (ISO_PLAYGROUND_OPEN_PROJECT,
     /// ISO_PLAYGROUND_RUN_PROJECT) is open from the first frame, on its page.
@@ -235,7 +235,7 @@ public struct PlaygroundRoot: View {
                 }
             }
         }
-        .overlay {
+        .overlay(alignment: .center) {
             if hasProjects, store.projects.isEmpty {
                 ContentUnavailableView {
                     Label("No Projects", systemImage: "app.dashed")
