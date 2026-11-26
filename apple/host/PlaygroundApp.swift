@@ -6,9 +6,15 @@ import ApplePlatformServices
 import PlatformServices
 import ShireworksKit
 import SwiftUI
+#if os(macOS)
+import AppKit
+#endif
 
 @main
 struct PlaygroundApp: App {
+    /// What the menu commands ask of the shell, and whether they can.
+    @State private var actions = PlaygroundActions.shared
+
     init() {
         PlaygroundHost.service = AppleHost()
         PlaygroundSurfaces.run = { onStopped in AnyView(AppleRunSurface(onStopped: onStopped)) }
@@ -35,12 +41,47 @@ struct PlaygroundApp: App {
             // sign-in, where the build carries its keys (CI's:
             // ShireworksRepository and the rest, //tools/signing).
             PlaygroundRoot().shireworks()
+                #if os(macOS)
+                // The sidebar at its narrowest beside a project's chat and
+                // its bar's three buttons.
+                .frame(minWidth: 720, minHeight: 480)
+                #endif
         }
         #if os(macOS)
+            // The sidebar at its default width beside a chat as wide as
+            // Visor's.
             .defaultSize(width: 1280, height: 820)
+            .windowResizability(.contentMinSize)
         #endif
-        // Help › Report a Bug… (⌥⌘B), the shake's twin on the Mac.
-        .commands { ShakeKitCommands() }
+        .commands {
+            // File › New Project (⌘N), in place of New Window: one window
+            // holds every project.
+            CommandGroup(replacing: .newItem) {
+                Button("New Project…") { actions.newProject() }
+                    .keyboardShortcut("n")
+                    .disabled(!actions.canMakeProjects)
+            }
+            // Project › Run (⌘R): the project open, as its bar's Run.
+            CommandMenu("Project") {
+                Button("Run") { actions.run() }
+                    .keyboardShortcut("r")
+                    .disabled(!actions.projectOpen)
+            }
+            // View › Show Sidebar (⌃⌘S), and on the Mac below it Search
+            // Projects.
+            SidebarCommands()
+            #if os(macOS)
+            // View › Search Projects (⌘F): the sidebar's field. Edit › Find
+            // (⌘F too) comes first in the menu bar, so in the code editor,
+            // where it is enabled, ⌘F is still the editor's find bar.
+            CommandGroup(after: .sidebar) {
+                Button("Search Projects") { focusProjectSearch() }
+                    .keyboardShortcut("f")
+            }
+            #endif
+            // Help › Report a Bug… (⌥⌘B), the shake's twin on the Mac.
+            ShakeKitCommands()
+        }
         #if os(macOS)
         // Playground › Settings… (⌘,): the Mac's place for them; the iPhone
         // and iPad have the sidebar's gear.
@@ -51,6 +92,28 @@ struct PlaygroundApp: App {
         #endif
     }
 }
+
+#if os(macOS)
+/// The sidebar's search field, given the keyboard: NavigationUI's
+/// ListSearchChrome keeps its focus to itself, so it is found in the window
+/// by its prompt (an iPad's is the system's .searchable, which ⌘F isn't
+/// offered for).
+@MainActor
+private func focusProjectSearch() {
+    guard let window = NSApp.keyWindow ?? NSApp.mainWindow, let root = window.contentView else { return }
+    func field(in view: NSView) -> NSTextField? {
+        if let field = view as? NSTextField, field.isEditable,
+           (field.placeholderString ?? field.placeholderAttributedString?.string) == "Search projects" {
+            return field
+        }
+        for child in view.subviews {
+            if let found = field(in: child) { return found }
+        }
+        return nil
+    }
+    if let found = field(in: root) { window.makeFirstResponder(found) }
+}
+#endif
 
 extension NativeKeychainService: PlatformServices.KeychainService {}
 extension NativeAnalyticsService: PlatformServices.AnalyticsService {}
