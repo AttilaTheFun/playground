@@ -13,9 +13,11 @@ the result two ways:
   is meant to feel like the whole app. Shake the device to get an alert with
   Dismiss/Cancel. The engine is the WasmView default, WasmKit's interpreter.
 - **Web** — a sheet: the in-app HTTP server publishes the same bytes and
-  `SFSafariViewController` opens the react-renderer page (`web/index.html`,
-  which injects the platform services over browser APIs): the browser's own
-  WebAssembly engine runs the reactor and the tree mounts as real DOM.
+  the shell's web-run sheet (shared/app/WebRunSheet.swift, the Isomer
+  module's `WebView`, the Mac's and Android's too) opens the DOM-renderer
+  page (`web/index.html`, which injects the platform services over browser
+  APIs): WebKit's own WebAssembly engine runs the reactor and the tree
+  mounts as real DOM.
 
 The composer's pills open the **Model** and **Effort** sheets. The model
 picker shows the selected model in its own section, then the provider's

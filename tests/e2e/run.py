@@ -30,8 +30,8 @@ android  Builds the APK the way it is installed (-c opt), installs it on an
 ios      Builds the simulator app (the embedded compiler when it is staged),
          installs it on a simulator leased from Shireworks, opens the Pokédex
          project from the sidebar and taps "Run on the web" in the app: the
-         app compiles it in-process, and the page opens in the app's Safari view
-         (WebKit, as on the phone) and must show the project; then the
+         app compiles it in-process, and the page opens in the app's web-run
+         sheet (a WKWebView, as on the phone) and must show the project; then the
          template check, on projects from before the store kept hashes; then
          compiles every project with the app's compiler (ISO_PLAYGROUND_AUTORUN
          =all; the host toolchain, as the simulator has no embedded one).
@@ -357,8 +357,8 @@ def android():
                 seen = page_check("http://127.0.0.1:8794/index.html", BOARD)
                 check(seen.get("ok"), "android: the web run's page shows the board, nothing failed on the way", json.dumps(seen))
                 sh(a + ["forward", "--remove", "tcp:8794"], check_status=False)
-        # Back from the browser to the project.
-        sh(a + ["shell", "am", "start", "-n", f"{ANDROID_PACKAGE}/.MainActivity"], check_status=False)
+        # The web-run sheet down (Back), to the project.
+        sh(a + ["shell", "input", "keyevent", "KEYCODE_BACK"], check_status=False)
         time.sleep(2)
 
         # Run: the build in its own window, on the wasm engine.
@@ -570,10 +570,10 @@ def ios():
         road("Pokédex on the web")
         said = drive(f"bundle {IOS_BUNDLE}", "sleep 2", "tapany Pokédex", "sleep 2", "tapany Run on the web", "sleep 40", "tree")
         check("tapped Run on the web" in said, "ios: Run on the web is offered", said[:200])
-        # The page's own text, inside the app's Safari view (`tree` is the
+        # The page's own text, inside the app's web-run sheet (`tree` is the
         # web view's elements): the project's title, there with no network.
         check(re.search(r"StaticText[^\n]*label: 'Pokédex'", said) is not None,
-              "ios: the web run's page shows the project in the app's Safari view", said[-400:])
+              "ios: the web run's page shows the project in the app's web-run sheet", said[-400:])
 
         # Templates out of the box, as on Android, for projects from before the
         # store kept their template's hash: one still holding a template an

@@ -27,7 +27,7 @@ the renderer choice, the capabilities: "projects" where it compiles) and
 | Platform | App | Host | A build runs in |
 | --- | --- | --- | --- |
 | iOS | `apple/playground_ios_application` | `apple/host` (AppleHost: the embedded compiler, the in-app web run, OpenRouter sign-in) | WasmView on WasmKit, SwiftUI or Metal |
-| macOS | `apple/playground_macos_application` | `apple/host` (AppleHost: the compiler it carries, run as processes) | WasmView on WasmKit (a sheet) |
+| macOS | `apple/playground_macos_application` | `apple/host` (AppleHost: the compiler it carries, run as processes, the in-app web run) | WasmView on WasmKit or a web view (a sheet) |
 | Android | `android/playground_android_application` | Kotlin (PlaygroundServices.kt) | RunActivity (a process of its own), WasmView on WasmKit |
 | Web | `web/playground_web_application` | index.html | the page's runner (hot_runner.js), the browser's engine |
 | Linux | `linux/playground_linux_application` | `shared/desktop_host` (the compiler beside the app, run as processes) | the WasmKit loader's window (`playground_wasm_loader`) |
@@ -199,7 +199,7 @@ paths rewritten to the root; commits before 0.35 are isomer's alone).
   with no failed request or script error (`page_check.js`), and "Run" must
   start the build in its own window and survive a swipe. iOS (its own
   simulator, `playground-e2e`): "Run on the web" must show the project
-  inside the app's Safari view, read through Isomer's XCUITest driver
+  inside the app's web-run sheet, read through Isomer's XCUITest driver
   (`examples/tests/safari_probe` in an isomer checkout: `ISOMER`, default
   isomer beside this one). It exists because
   "Run on the web" reached phones blank twice: the site's file list missing
@@ -255,11 +255,15 @@ native platform since 0.38; WAMR is gone.
 
 - **iOS**: in-process under `WasmView`, on WasmKit (`WasmRuntimeRegistry`'s
   default), drawn by the SwiftUI tree renderer or, by the Settings choice,
-  SwiftGPU over Metal; or in Safari ("Run on the web").
-- **macOS**: under `WasmView` in a sheet, the SwiftUI tree renderer.
+  SwiftGPU over Metal; the engine WasmKit, or WebKit's JIT in a web view out
+  of sight (Settings' Run); or as a web page in the shell's web-run sheet
+  ("Run on the web", served by the app: WebRunServer).
+- **macOS**: under `WasmView` in a sheet, the SwiftUI tree renderer, on
+  WasmKit or the web view as the iPhone; or in the web-run sheet.
 - **Android**: in its own window and process (`RunActivity`, `:run`) under
   the Android WasmView: WasmKit as a Swift library of its own
   (isomer_android's wasm_view:engine_native), which is why a run
-  has a process of its own (one Swift runtime a process); or in a Chrome tab.
+  has a process of its own (one Swift runtime a process); or in the web-run
+  sheet's WebView.
 - **Web**: in the page, on the browser's own WebAssembly engine.
 - **Linux, Windows**: the WasmKit loader's window, a child process.

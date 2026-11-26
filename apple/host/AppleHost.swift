@@ -2,8 +2,8 @@
 // `PlaygroundHost.service` before the app starts: the shared shell's
 // compiler, runs, chat and settings. It compiles (ToolchainCompiler: the
 // swift-frontend and lld the app carries, or the host toolchain on the
-// simulator), runs a build in a WasmView (AppleRun), serves a build to an
-// in-app Safari on the iPhone (WebRunServer) and signs in to OpenRouter
+// simulator), runs a build in a WasmView (AppleRun), serves a build for
+// the shared web-run sheet (WebRunServer) and signs in to OpenRouter
 // (PKCE).
 
 import AuthenticationServices
@@ -16,7 +16,6 @@ import AppKit
 #endif
 import SwiftUI
 #if os(iOS)
-import SafariServices
 import UIKit
 #endif
 
@@ -25,13 +24,9 @@ final class AppleHost: PlaygroundHostService, @unchecked Sendable {
     private var lastBuild: Data?
 
     func capabilities() -> String {
-        #if os(iOS)
         // "engines": a build runs on WasmKit or in a web view (AppleRun.Engine).
         // "timings": a run can show its engine's timings (AppleRunSurface).
         "projects,sign-in,engines,timings"
-        #else
-        "projects,sign-in,timings"
-        #endif
     }
 
     // MARK: Compiling
@@ -75,30 +70,15 @@ final class AppleHost: PlaygroundHostService, @unchecked Sendable {
         MainActor.assumeIsolated { AppleRun.shared.logs }
     }
 
-    func canRunOnWeb() -> Bool {
-        #if os(iOS)
-        return true
-        #else
-        return false
-        #endif
-    }
+    func canRunOnWeb() -> Bool { true }
 
-    /// The last build in an in-app Safari: the app serves the page and the
-    /// reactor (WebRunServer); WebKit runs it with the React renderer.
+    /// The last build served by the app (WebRunServer), for the shared
+    /// web-run sheet to show; WebKit runs it with the DOM renderer.
     func runOnWeb() async throws -> String {
-        #if os(iOS)
         guard let wasm = lastBuild else { throw HostError("nothing built yet") }
         guard let url = WebRunServer.shared.publish(wasm: wasm) else { throw HostError("the in-app web server did not start") }
-        await MainActor.run {
-            let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
-            var top = scenes.compactMap(\.keyWindow).first?.rootViewController
-            while let presented = top?.presentedViewController { top = presented }
-            top?.present(SFSafariViewController(url: url), animated: true)
-        }
-        return "opened \(url.absoluteString)"
-        #else
-        throw HostError("no web run on the Mac")
-        #endif
+        NSLog("[web-run] %@", url.absoluteString)
+        return url.absoluteString
     }
 
     // MARK: Driving the run

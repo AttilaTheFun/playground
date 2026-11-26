@@ -12,8 +12,9 @@ stamped_infoplist(name = "stamped_plist")
 # SwiftUI, with the Apple host (apple/host). It compiles a project with the
 # swift-frontend and wasm-ld it carries (shared/compiler: the toolchain in its
 # Resources, about 470 MB, run as processes) against the Playground SDK the
-# iPhone carries, and a build runs in a WasmView (WasmKit, the SwiftUI tree
-# renderer).
+# iPhone carries, and a build runs in a WasmView (WasmKit, or a web view out
+# of sight, by Settings' engine; the SwiftUI tree renderer draws it), or as a
+# web page it serves (the iPhone's web-run site) in the shared web-run sheet.
 #
 #   bazel build //apple/playground_macos_application
 
@@ -92,6 +93,8 @@ macos_application(
     resources = [
         "//shared/compiler:toolchain",
         "//apple/playground_ios_application:playground_sdk",
+        # Run on the web's page, and the web view engine's (WebRunServer).
+        "//apple/playground_ios_application:playground_site",
     ],
     deps = [":playground_macos_lib"],
 )

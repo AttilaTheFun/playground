@@ -34,19 +34,15 @@ final class AppleRun {
     /// Settings' "Show timings" is on.
     private(set) var timings: EngineTimings?
 
-    /// What runs a build: WasmKit's interpreter, or (on the iPhone) WebKit's
-    /// JavaScript engine in a web view kept out of sight (WebViewEngine).
+    /// What runs a build: WasmKit's interpreter, or WebKit's JavaScript
+    /// engine in a web view kept out of sight (WebViewEngine).
     /// Either way the app draws it. Settings' "Run" picker keeps it in
     /// UserDefaults (playground.engine).
     enum Engine: String {
         case wasmKit, webView
 
         static var chosen: Engine {
-            #if os(iOS)
-            return Engine(rawValue: UserDefaults.standard.string(forKey: "playground.engine") ?? "") ?? .wasmKit
-            #else
-            return .wasmKit
-            #endif
+            Engine(rawValue: UserDefaults.standard.string(forKey: "playground.engine") ?? "") ?? .wasmKit
         }
 
         var title: String { self == .webView ? "Web view (JIT)" : "WasmKit" }
@@ -72,16 +68,9 @@ final class AppleRun {
         // run's home here: WasmViewModel gives it one only when it is the
         // engine itself, not wrapped.
         let model = WasmViewModel(runtime: { [weak self] _ in
-            let inner: any WasmRuntime
-            #if os(iOS)
-            if engine == .webView {
-                inner = WebViewEngine()
-            } else {
-                inner = Self.wasmKit(home: home.path, bundleIdentifier: bundleIdentifier)
-            }
-            #else
-            inner = Self.wasmKit(home: home.path, bundleIdentifier: bundleIdentifier)
-            #endif
+            let inner: any WasmRuntime = engine == .webView
+                ? WebViewEngine()
+                : Self.wasmKit(home: home.path, bundleIdentifier: bundleIdentifier)
             return TimedEngine(inner, engine: engine.title) { timings in
                 self?.timings = timings
                 NSLog("[playground] timings: %@", timings.summary)
