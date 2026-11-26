@@ -44,6 +44,14 @@ struct PlaygroundApp: App {
         #endif
         // Help › Report a Bug… (⌥⌘B), the shake's twin on the Mac.
         .commands { ShakeKitCommands() }
+        #if os(macOS)
+        // Playground › Settings… (⌘,): the Mac's place for them; the iPhone
+        // and iPad have the sidebar's gear.
+        Settings {
+            PlaygroundSettings()
+                .frame(minWidth: 480, minHeight: 360)
+        }
+        #endif
     }
 }
 

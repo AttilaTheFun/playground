@@ -355,6 +355,7 @@ swift_library(
         "@isomer//shared/platform_services",
         "@isomer//swift_ffi/runtime/swift_wasm_host",
         "@swiftpkg_agent_ui//:AgentUI",
+        "@swiftpkg_agent_ui//:NavigationUI",
         # The build it is, its updates, crash reports and shake to report
         # (apple/host/PlaygroundApp.swift).
         "@swiftpkg_shireworks_kit//:ShireworksKit",

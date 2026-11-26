@@ -34,6 +34,7 @@ swift_binary(
         "@isomer//linux/libraries/swift_ui:isomer",
         "@isomer//shared/platform_services",
         "@swiftpkg_agent_ui//:AgentUI",
+        "@swiftpkg_agent_ui//:NavigationUI",
     ],
 )
 

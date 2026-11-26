@@ -32,6 +32,7 @@ swift_library(
         "@isomer//android/libraries/swift_ui",
         "@isomer//android/libraries/swift_ui:isomer",
         "@swiftpkg_agent_ui//:AgentUI",
+        "@swiftpkg_agent_ui//:NavigationUI",
     ],
 )
 
