@@ -33,9 +33,7 @@ public struct ProjectEditorSheet<Editor: View, Extra: View>: View {
         NavigationStack {
             editor($text)
                 .navigationTitle(fileName)
-                #if !os(macOS)
-                .navigationBarTitleDisplayMode(.inline)
-                #endif
+                .inlineTitle()
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
                         Button("Cancel") {
@@ -91,9 +89,7 @@ public struct BuildDiagnosticsSheet: View {
                     .padding()
             }
             .navigationTitle("Build failed")
-            #if !os(macOS)
-            .navigationBarTitleDisplayMode(.inline)
-            #endif
+            .inlineTitle()
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
         }
     }

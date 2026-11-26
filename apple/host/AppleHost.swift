@@ -11,6 +11,9 @@ import CryptoKit
 import Foundation
 import Isomer
 import Security
+#if canImport(AppKit)
+import AppKit
+#endif
 import SwiftUI
 #if os(iOS)
 import UIKit
@@ -123,13 +126,9 @@ final class AppleHost: PlaygroundHostService, @unchecked Sendable {
     }
 
     func signIn() async throws -> String {
-        #if os(iOS)
         let key = try await OpenRouterSignIn.run()
         setKey(key: key)
         return "signed in"
-        #else
-        throw HostError("paste a key in Settings")
-        #endif
     }
 
     // MARK: Settings and the rest
@@ -202,9 +201,9 @@ enum Keychain {
     }
 }
 
-#if os(iOS)
 /// OpenRouter's OAuth (PKCE): https://openrouter.ai/auth in a web
-/// authentication session, its code exchanged for a user-scoped key.
+/// authentication session (the system's sign-in sheet on the iPhone, its
+/// window on the Mac), its code exchanged for a user-scoped key.
 @MainActor
 enum OpenRouterSignIn {
     /// The app's one link scheme, `playground` (Applications' Open uses it
@@ -213,8 +212,14 @@ enum OpenRouterSignIn {
 
     private final class Anchor: NSObject, ASWebAuthenticationPresentationContextProviding {
         var session: ASWebAuthenticationSession?
+        /// The app's key window: a UIWindow on the iPhone, an NSWindow (the
+        /// Settings window the sign-in was asked from) on the Mac.
         func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
+            #if canImport(UIKit)
             UIApplication.shared.connectedScenes.compactMap { ($0 as? UIWindowScene)?.keyWindow }.first ?? ASPresentationAnchor()
+            #else
+            NSApp.keyWindow ?? NSApp.mainWindow ?? ASPresentationAnchor()
+            #endif
         }
     }
     private static let anchor = Anchor()
@@ -264,4 +269,3 @@ enum OpenRouterSignIn {
             .replacingOccurrences(of: "/", with: "_").replacingOccurrences(of: "=", with: "")
     }
 }
-#endif
