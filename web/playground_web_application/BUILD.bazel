@@ -25,6 +25,7 @@ swift_library(
     deps = [
         "@isomer//shared/platform_services",
         "@swiftpkg_agent_ui//:AgentUI",
+        "@swiftpkg_agent_ui//:NavigationUI",
         "@isomer//wasm/libraries/swift_ui",
         "@isomer//wasm/libraries/swift_ui:isomer",
     ],

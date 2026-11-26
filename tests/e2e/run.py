@@ -321,7 +321,7 @@ def android():
             def show(steps):
                 sh(a + ["shell", "am", "force-stop", ANDROID_PACKAGE])
                 launch()
-                bounds("text", "New Project")
+                bounds("text", "Playground")
                 for kind, value in steps:
                     if kind == "sleep": time.sleep(value)
                     elif not tap(kind, value): log(f"      proof: no {value} to tap")
@@ -333,7 +333,7 @@ def android():
             screens = [("menu", []),
                        ("project", [("text", "2048")]),
                        ("editor", [("text", "2048"), ("content-desc", "Edit")]),
-                       ("new-project", [("text", "New Project")]),
+                       ("new-project", [("content-desc", "New Project")]),
                        ("settings", [("content-desc", "Settings")]),
                        ("run", [("text", "2048"), ("content-desc", "Run"), ("sleep", 45)])]
             for orientation in ("portrait", "landscape"):

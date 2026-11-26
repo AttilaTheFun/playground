@@ -35,6 +35,7 @@ swift_binary(
         "@isomer//windows/libraries/swift_ui",
         "@isomer//windows/libraries/swift_ui:isomer",
         "@swiftpkg_agent_ui//:AgentUI",
+        "@swiftpkg_agent_ui//:NavigationUI",
     ],
 )
 

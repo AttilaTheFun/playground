@@ -10,6 +10,7 @@
 
 import AgentUI
 import Foundation
+import NavigationUI
 import SwiftUI
 import Isomer
 
@@ -49,6 +50,8 @@ public struct PlaygroundRoot: View {
     @State private var selection: String?
     @State private var showNewProject = false
     @State private var showSettings = false
+    /// What the sidebar's search narrows the projects to.
+    @State private var search = ""
     @State private var columns: NavigationSplitViewVisibility = .all
     /// A phone's one column: the sidebar (the app's main menu) until
     /// something is opened.
@@ -91,7 +94,7 @@ public struct PlaygroundRoot: View {
                 }
             }
         }
-        .sheet(isPresented: $showSettings) { SettingsSheet(hasProjects: hasProjects) }
+        .sheet(isPresented: $showSettings) { PlaygroundSettings(hasProjects: hasProjects) }
         .onAppear {
             openFirstPageIfWide()
             startLaunchRun()
@@ -163,15 +166,43 @@ public struct PlaygroundRoot: View {
 
     // MARK: Sidebar
 
+    /// Visor's sidebar: the projects under a search field, a compose button
+    /// for a new one (in the bar at the bottom on a phone, as Messages has
+    /// it; at the top beside the detail), and Settings at the top leading
+    /// edge, beside the sidebar's own button. The Mac has Settings in its
+    /// menu instead (⌘,: the app's Settings scene).
     private var sidebar: some View {
+        let compose: (() -> Void)? = hasProjects ? { showNewProject = true } : nil
+        return ListSearchChrome(text: $search, prompt: "Search projects", composeLabel: "New Project",
+                                compose: compact ? compose : nil) {
+            projectList
+        }
+        .navigationTitle("Playground")
+        .toolbar {
+            #if !os(macOS)
+            ToolbarItem(placement: .navigation) {
+                Button { showSettings = true } label: { Image(systemName: "gearshape") }
+                    .accessibilityLabel("Settings")
+                    .accessibilityIdentifier("settings")
+            }
+            #endif
+            if !compact, let compose {
+                ToolbarItem(placement: .primaryAction) {
+                    Button(action: compose) { Image(systemName: "square.and.pencil") }
+                        .accessibilityLabel("New Project")
+                        .accessibilityIdentifier("new-project")
+                }
+            }
+        }
+        .navigationSplitViewColumnWidth(min: 240, ideal: 360, max: 480)
+    }
+
+    /// The projects, those the search names.
+    private var projectList: some View {
         List(selection: $selection) {
             if hasProjects {
                 Section("Projects") {
-                    Button { showNewProject = true } label: {
-                        Label("New Project", systemImage: "plus.circle.fill")
-                    }
-                    .accessibilityIdentifier("new-project")
-                    ForEach(store.projects) { project in
+                    ForEach(searchedProjects) { project in
                         HStack {
                             Label(project.name, systemImage: "app.dashed")
                             Spacer()
@@ -190,14 +221,12 @@ public struct PlaygroundRoot: View {
         #else
         .listStyle(.insetGrouped)
         #endif
-        .navigationTitle("Playground")
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                Button { showSettings = true } label: { Image(systemName: "gearshape") }
-                    .accessibilityLabel("Settings")
-                    .accessibilityIdentifier("settings")
-            }
-        }
+    }
+
+    private var searchedProjects: [WebProject] {
+        let query = search.trimmingCharacters(in: .whitespaces)
+        guard !query.isEmpty else { return store.projects }
+        return store.projects.filter { $0.name.localizedCaseInsensitiveContains(query) }
     }
 
     private func delete(project id: String) {
@@ -497,9 +526,25 @@ extension TranscriptMessage {
     }
 }
 
-struct SettingsSheet: View {
+/// Settings: a sheet from the sidebar's gear, or the Mac's Settings window
+/// (⌘,), which has no Done.
+public struct PlaygroundSettings: View {
     let hasProjects: Bool
+    /// In the Mac's Settings window, not a sheet.
+    let inWindow: Bool
     @Environment(\.dismiss) private var dismiss
+
+    /// What the Mac's Settings scene shows: Settings as the host can have
+    /// them (sign-in and compiler where it compiles).
+    public init() {
+        self.init(hasProjects: PlaygroundHost.service?.supportsProjects() ?? false, inWindow: true)
+    }
+
+    init(hasProjects: Bool, inWindow: Bool = false) {
+        self.hasProjects = hasProjects
+        self.inWindow = inWindow
+    }
+
     @State private var key = ""
     @State private var hasKey = PlaygroundHost.service?.hasKey() ?? false
     @State private var model = WebSettings.model
@@ -511,7 +556,7 @@ struct SettingsSheet: View {
     /// "timings" capability). Off by default.
     @AppStorage("playground.showTimings") private var showTimings = false
 
-    var body: some View {
+    public var body: some View {
         NavigationStack {
             Form {
                 if hasProjects, PlaygroundHost.service?.supports("sign-in") == true {
@@ -593,7 +638,11 @@ struct SettingsSheet: View {
                 }
             }
             .navigationTitle("Settings")
-            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
+            .toolbar {
+                if !inWindow {
+                    ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
+                }
+            }
         }
     }
 }
