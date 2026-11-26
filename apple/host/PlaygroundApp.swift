@@ -1,7 +1,6 @@
 // The Playground on Apple platforms: the shared shell (shared/app) against
 // Apple's SwiftUI, with the host (AppleHost) and the platform's views (the
-// run's WasmView, the iPhone's highlighted code editor) installed before it
-// starts.
+// run's WasmView, the highlighted code editor) installed before it starts.
 
 import ApplePlatformServices
 import PlatformServices
@@ -17,9 +16,7 @@ struct PlaygroundApp: App {
         // while it is up (on the view presenting it: a cover's preferences
         // don't reach the views behind it).
         PlaygroundSurfaces.whileRunning = { content, running in AnyView(content.shakeToReportPaused(running)) }
-        #if os(iOS)
         PlaygroundSurfaces.codeEditor = { text, fileName in AnyView(CodeEditor(text: text, fileName: fileName)) }
-        #endif
         // The shell's shake reads the compiled-in service table (device
         // motion), as the example apps do.
         installPlatformDependencies(
