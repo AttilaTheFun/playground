@@ -383,6 +383,8 @@ struct ProjectView: View {
     @State private var showEditor = false
     @State private var running = false
     @State private var buildFailure: String?
+    /// The page the host serves the build at, while the web-run sheet is up.
+    @State private var webRun: URL?
 
     var body: some View {
         AgentView(
@@ -438,6 +440,9 @@ struct ProjectView: View {
         .sheet(isPresented: Binding(get: { buildFailure != nil }, set: { if !$0 { buildFailure = nil } })) {
             BuildDiagnosticsSheet(diagnostics: buildFailure ?? "")
         }
+        .sheet(isPresented: Binding(get: { webRun != nil }, set: { if !$0 { webRun = nil } })) {
+            WebRunSheet(url: webRun, title: session.store.projects.first(where: { $0.id == session.projectID })?.name ?? "Project")
+        }
         .runCover(isPresented: $running)
         // Project › Run (⌘R): this project, the one open.
         .onChange(of: PlaygroundActions.shared.runRequests) { _ in
@@ -458,7 +463,7 @@ struct ProjectView: View {
     }
 
     /// Build (when the last build is stale), then run full screen — or, on
-    /// a host with a browser to hand, in that browser.
+    /// a host that serves it as a page, in the web-run sheet.
     private func run(onWeb: Bool = false) {
         Task { @MainActor in
             if !session.buildOK {
@@ -472,7 +477,8 @@ struct ProjectView: View {
             }
             do {
                 if onWeb {
-                    _ = try await PlaygroundHost.service?.runOnWeb()
+                    guard let page = try await PlaygroundHost.service?.runOnWeb(), let url = URL(string: page) else { return }
+                    webRun = url
                 } else {
                     _ = try await PlaygroundHost.service?.run(project: session.projectID)
                     running = true
@@ -534,9 +540,20 @@ extension View {
     fileprivate func fullScreenCoverOrSheet<Cover: View>(isPresented: Binding<Bool>, @ViewBuilder cover: @escaping () -> Cover) -> some View {
         #if os(macOS)
         // A run is an app of its own: a sheet near the window's size.
-        sheet(isPresented: isPresented) { cover().frame(minWidth: 1100, minHeight: 720) }
+        sheet(isPresented: isPresented) { cover().windowSheetFrame(minWidth: 1100, minHeight: 720) }
         #else
         fullScreenCover(isPresented: isPresented, content: cover)
+        #endif
+    }
+
+    /// A sheet's least size where a sheet is sized to its content (the Mac:
+    /// a run or a web page has no size of its own); nothing elsewhere, where
+    /// a sheet fills its column or the screen.
+    func windowSheetFrame(minWidth: CGFloat, minHeight: CGFloat) -> some View {
+        #if os(macOS)
+        return frame(minWidth: minWidth, minHeight: minHeight)
+        #else
+        return self
         #endif
     }
 }
@@ -686,7 +703,7 @@ public struct PlaygroundSettings: View {
                         Text("Run")
                     } footer: {
                         Text(PlaygroundHost.service?.supports("engines") == true
-                            ? "What runs a build in the app; the app draws it either way. The web view runs it with WebKit's JIT, out of sight. Run in Safari draws it in the browser instead. The next run takes the change. Show timings puts the engine's first frame and event-to-frame times under a run."
+                            ? "What runs a build in the app; the app draws it either way. The web view runs it with WebKit's JIT, out of sight. Run on the web draws it as a web page instead. The next run takes the change. Show timings puts the engine's first frame and event-to-frame times under a run."
                             : "Show timings puts the engine's first frame and event-to-frame times under a run.")
                     }
                 }

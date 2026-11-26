@@ -347,11 +347,10 @@ class AndroidPlaygroundHost(private val context: Context, private val preference
 
     override fun canRunOnWeb(): Boolean = web.packaged
 
+    /** The page's URL: the shell shows it in its web-run sheet (a WebView). */
     override suspend fun runOnWeb(): String {
         val wasm = lastBuild ?: throw IllegalStateException("nothing built yet")
-        val url = web.publish(wasm, File(context.filesDir, "sandbox/playground_run"))
-        Handler(Looper.getMainLooper()).post { web.open(url) }
-        return "opened $url"
+        return web.publish(wasm, File(context.filesDir, "sandbox/playground_run"))
     }
 
     override suspend fun chat(body: String): String = suspendCoroutine { cont ->

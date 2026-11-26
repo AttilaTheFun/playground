@@ -40,8 +40,8 @@ variant_infoplist(
 # Playground: a Swift Playgrounds-style example app. A file browser + text
 # editor over .swift files; "Run" compiles them AGAINST THE BUNDLED WASM SDK
 # into a `iso_hot` feature reactor and either runs it in-process under
-# WasmView (the native SwiftUI renderer) or serves it to Safari
-# (SFSafariViewController + the react renderer via the generic hot_host.js).
+# WasmView (the native SwiftUI renderer) or serves it to a web view (the
+# shared web-run sheet + the DOM renderer via the generic hot_host.js).
 #
 # The compiler backend is a seam (ToolchainCompiler): on the simulator the
 # app posix_spawns the host SwiftWasm toolchain (paths injected by :run via
@@ -63,9 +63,10 @@ wasm_sdk_bundle(
     ],
 )
 
-# The web-run site: index.html + the react renderer + the generic iso_hot
-# host. `app.wasm` is NOT here — the in-app HTTP server serves the latest
-# user build at /app.wasm. swift_ffi_runtime.js (the WASI shim hot_host.js
+# The web-run site (the iPhone's and the Mac's): index.html + the DOM
+# renderer + the generic iso_hot host. `app.wasm` is NOT here — the in-app
+# HTTP server (apple/host/WebRunServer.swift) serves the latest user build
+# at /app.wasm. swift_ffi_runtime.js (the WASI shim hot_host.js
 # imports) is the shared, app-independent runtime file; borrowed from the
 # full web example's compiled output.
 assemble_directory(
@@ -332,10 +333,10 @@ apple_resource_group(
 swift_library(
     name = "playground_lib",
     srcs = [
-        # The iPhone's own: the web run, the code editor.
+        # The iPhone's own: the code editor.
         "CodeEditor.swift",
-        "WebRunServer.swift",
-        # The compiler (the Mac's too), the Apple host and the shared shell.
+        # The compiler, the Apple host (the web run's server and the web view
+        # engine among it) and the shared shell, the Mac's too.
         "//apple/compiler:srcs",
         "//apple/host:srcs",
         "//shared/app:srcs",

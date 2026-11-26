@@ -11,9 +11,9 @@ News, Meme Creator, Pokédex, Date Planner, Map Explorer, Floating Menu, and
 
 | | Target | Renderer | Projects (compiler) | A run |
 | --- | --- | --- | --- | --- |
-| iOS | `//apple/playground_ios_application` | SwiftUI; Metal for runs | swift-frontend and lld linked into the app | WasmView (WasmKit), or Safari |
-| macOS | `//apple/playground_macos_application` | SwiftUI | swift-frontend and wasm-ld in the app, run as processes | WasmView (WasmKit) |
-| Android | `//android/playground_android_application` | Compose, OpenGL | swift-frontend and wasm-ld in the APK | its own window (WasmKit), or Chrome |
+| iOS | `//apple/playground_ios_application` | SwiftUI; Metal for runs | swift-frontend and lld linked into the app | WasmView (WasmKit or a web view), or a web page in the app |
+| macOS | `//apple/playground_macos_application` | SwiftUI | swift-frontend and wasm-ld in the app, run as processes | WasmView (WasmKit or a web view), or a web page in the app |
+| Android | `//android/playground_android_application` | Compose, OpenGL | swift-frontend and wasm-ld in the APK | its own window (WasmKit), or a web page in the app |
 | Web | `//web/playground_web_application` | React, WebGPU | the compiler as WebAssembly, in a Worker | in the page |
 | Linux | `//linux/playground_linux_application` | OpenGL | swift-frontend and wasm-ld beside the app, run as processes | its own window (WasmKit) |
 | Windows | `//windows/playground_windows_application` | Direct3D | swift-frontend and wasm-ld beside the app (the build machine's Swift's), run as processes | its own window (WasmKit) |

@@ -1,9 +1,9 @@
-// The Playground's second engine on the iPhone: a build run headless in a
-// web view kept out of sight, by WebKit's JavaScript engine (its JIT), and
-// drawn by the app as a WasmKit run is. To WasmView it is any engine
-// (`WasmRuntime`): the run's driver (WasmFeatureRuntime) and its head are
-// the same as WasmKit's, so the two compare engine for engine. The page
-// (web/native_head.html, native_head.js, served with the build by
+// The Playground's second engine on the iPhone and the Mac: a build run
+// headless in a web view kept out of sight, by WebKit's JavaScript engine
+// (its JIT), and drawn by the app as a WasmKit run is. To WasmView it is
+// any engine (`WasmRuntime`): the run's driver (WasmFeatureRuntime) and its
+// head are the same as WasmKit's, so the two compare engine for engine. The
+// page (web/native_head.html, native_head.js, served with the build by
 // WebRunServer) posts each tree here and runs the calls it is sent.
 //
 // WasmRuntime is synchronous and a web view is not: a call goes to the page
@@ -13,12 +13,15 @@
 // guest. The guest's platform services are the page's (page_dependencies.js)
 // and its networking the page's fetch, not the app's.
 
-#if os(iOS)
 import Foundation
 import IsomerWasmView
 import SwiftFFIWasmHost
-import UIKit
 import WebKit
+#if canImport(UIKit)
+import UIKit
+#else
+import AppKit
+#endif
 
 @MainActor
 final class WebViewEngine: NSObject, WasmRuntime {
@@ -50,14 +53,15 @@ final class WebViewEngine: NSObject, WasmRuntime {
         }
         // In a window, but not seen and never touched: WebKit holds back the
         // timers of a web view in none (iOS counts a view visible when it
-        // is in a window whose scene is in the foreground).
+        // is in a window whose scene is in the foreground; a Mac when its
+        // window is on screen and not occluded).
         let view = WKWebView(frame: CGRect(x: 0, y: 0, width: 1, height: 1), configuration: configuration)
-        view.isUserInteractionEnabled = false
         place(view)
         view.load(URLRequest(url: index.deletingLastPathComponent().appendingPathComponent("native_head.html")))
         webView = view
     }
 
+    #if canImport(UIKit)
     /// The window the web view lives in, when it is one of its own.
     private var ownWindow: UIWindow?
 
@@ -68,6 +72,7 @@ final class WebViewEngine: NSObject, WasmRuntime {
     /// touches, over or under the app's), `hidden` (a window of its own
     /// never shown).
     private func place(_ view: WKWebView) {
+        view.isUserInteractionEnabled = false
         let scene = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first
         let placement = UserDefaults.standard.string(forKey: "playground.webViewPlacement") ?? "keyWindow"
         guard placement != "keyWindow", let scene else {
@@ -95,6 +100,26 @@ final class WebViewEngine: NSObject, WasmRuntime {
         }
         ownWindow = window
     }
+
+    private func unplace() {
+        ownWindow?.isHidden = true
+        ownWindow = nil
+    }
+    #else
+    /// On the Mac: 1x1 and nearly transparent in the app's own window, as
+    /// the iPhone's default: a web view in no window, or in one off screen,
+    /// is a hidden page whose timers WebKit throttles. Not the Settings
+    /// window, though it may be key: closing it would throttle the run.
+    private func place(_ view: WKWebView) {
+        view.alphaValue = 0.01
+        func isSettings(_ window: NSWindow) -> Bool { window.identifier?.rawValue.contains("Settings") == true }
+        let window = [NSApp.mainWindow, NSApp.keyWindow].compactMap { $0 }.first { !isSettings($0) }
+            ?? NSApp.windows.first { $0.isVisible && !isSettings($0) }
+        window?.contentView?.addSubview(view)
+    }
+
+    private func unplace() {}
+    #endif
 
     func installDependencies(prefix: String, _ dependencies: [String: SwiftFFIDependency]) {
         // The page gives the build its own (page_dependencies.js).
@@ -177,8 +202,7 @@ final class WebViewEngine: NSObject, WasmRuntime {
         webView?.configuration.userContentController.removeScriptMessageHandler(forName: "isomerHead")
         webView?.removeFromSuperview()
         webView = nil
-        ownWindow?.isHidden = true
-        ownWindow = nil
+        unplace()
     }
 
     struct EngineError: LocalizedError {
@@ -198,4 +222,3 @@ private final class MessageRelay: NSObject, WKScriptMessageHandler {
         MainActor.assumeIsolated { engine?.received(body) }
     }
 }
-#endif

@@ -1,7 +1,9 @@
 # The Playground's host on Apple platforms (AppleHost.swift), its run
-# surface (AppleRun.swift) and its @main (PlaygroundApp.swift): compiled into
-# the iOS app (apple/playground_ios_application) with that app's compiler and
-# web run, and into the Mac app (apple/playground_macos_application).
+# surface (AppleRun.swift), its engines (WasmKit, and WebViewEngine.swift's
+# web view), the web run's server (WebRunServer.swift) and its @main
+# (PlaygroundApp.swift): compiled into the iOS app
+# (apple/playground_ios_application) and the Mac app
+# (apple/playground_macos_application), which both bundle the web-run site.
 
 package(default_visibility = ["//visibility:public"])
 
