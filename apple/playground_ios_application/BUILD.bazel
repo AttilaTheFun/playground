@@ -333,10 +333,9 @@ apple_resource_group(
 swift_library(
     name = "playground_lib",
     srcs = [
-        # The iPhone's own: the code editor.
-        "CodeEditor.swift",
-        # The compiler, the Apple host (the web run's server and the web view
-        # engine among it) and the shared shell, the Mac's too.
+        # The compiler, the Apple host (the web run's server, the web view
+        # engine and the code editor among it) and the shared shell, the
+        # Mac's too.
         "//apple/compiler:srcs",
         "//apple/host:srcs",
         "//shared/app:srcs",
