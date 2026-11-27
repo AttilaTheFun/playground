@@ -52,6 +52,9 @@ public struct PlaygroundRoot: View {
     @State private var showSettings = false
     /// What the sidebar's search narrows the projects to.
     @State private var search = ""
+    /// The project a swipe or the context menu asked to delete, until the
+    /// confirmation answers.
+    @State private var deleting: WebProject?
     @State private var columns: NavigationSplitViewVisibility = .all
     /// A phone's one column: the sidebar (the app's main menu) until
     /// something is opened.
@@ -62,6 +65,8 @@ public struct PlaygroundRoot: View {
     @State private var launchRunStarted = false
     /// The launch's own selection, which opens no page on a phone.
     @State private var settingFirstSelection = false
+    /// The menu commands' requests (New Project), and what they may ask.
+    private let actions = PlaygroundActions.shared
 
     /// What a launch hook opens (ISO_PLAYGROUND_OPEN_PROJECT,
     /// ISO_PLAYGROUND_RUN_PROJECT) is open from the first frame, on its page.
@@ -96,13 +101,20 @@ public struct PlaygroundRoot: View {
         }
         .sheet(isPresented: $showSettings) { PlaygroundSettings(hasProjects: hasProjects) }
         .onAppear {
+            actions.canMakeProjects = hasProjects
+            actions.projectOpen = selection != nil
             openFirstPageIfWide()
             startLaunchRun()
         }
         .task { startLaunchRun() }
         // A window that widens past a phone's opens a page beside the sidebar.
         .onChange(of: sizeClass) { _ in openFirstPageIfWide() }
+        // File › New Project (⌘N).
+        .onChange(of: actions.newProjectRequests) { _ in
+            if hasProjects { showNewProject = true }
+        }
         .onChange(of: selection) { value in
+            actions.projectOpen = value != nil
             if let value { store.select(value) }
             if settingFirstSelection {
                 settingFirstSelection = false
@@ -184,6 +196,7 @@ public struct PlaygroundRoot: View {
                 Button { showSettings = true } label: { Image(systemName: "gearshape") }
                     .accessibilityLabel("Settings")
                     .accessibilityIdentifier("settings")
+                    .help("Settings")
             }
             #endif
             if !compact, let compose {
@@ -191,6 +204,7 @@ public struct PlaygroundRoot: View {
                     Button(action: compose) { Image(systemName: "square.and.pencil") }
                         .accessibilityLabel("New Project")
                         .accessibilityIdentifier("new-project")
+                        .help("New Project")
                 }
             }
         }
@@ -203,16 +217,50 @@ public struct PlaygroundRoot: View {
             if hasProjects {
                 Section("Projects") {
                     ForEach(searchedProjects) { project in
-                        HStack {
-                            Label(project.name, systemImage: "app.dashed")
-                            Spacer()
-                            Button { delete(project: project.id) } label: { Image(systemName: "trash") }
-                                .buttonStyle(.plain)
-                                .foregroundColor(.secondary)
+                        Label(project.name, systemImage: "app.dashed")
+                            .tag(project.id)
+                            // Delete as Visor's and Shireworks' rows have it:
+                            // a swipe (never a full one) and the context
+                            // menu, each confirmed: a project's code and chat
+                            // go with it, and a right-click is easily missed.
+                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                Button(role: .destructive) { deleting = project } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
                                 .accessibilityLabel("Delete \(project.name)")
-                        }
-                        .tag(project.id)
+                            }
+                            .contextMenu {
+                                Button(role: .destructive) { deleting = project } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
+                                .accessibilityLabel("Delete \(project.name)")
+                            }
                     }
+                }
+            }
+        }
+        .confirmationDialog("Delete Project?", isPresented: Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } }),
+                            titleVisibility: .visible, presenting: deleting) { project in
+            Button("Delete", role: .destructive) { delete(project: project.id) }
+            Button("Cancel", role: .cancel) {}
+        } message: { project in
+            Text("“\(project.name)”, its code and its chat are deleted. This can't be undone.")
+        }
+        .overlay(alignment: .center) {
+            if hasProjects, store.projects.isEmpty {
+                ContentUnavailableView {
+                    Label("No Projects", systemImage: "app.dashed")
+                } description: {
+                    Text("Make one from a template, or describe an app and let the agent write it.")
+                } actions: {
+                    Button("New Project") { showNewProject = true }
+                        .accessibilityIdentifier("empty-new-project")
+                }
+            } else if hasProjects, searchedProjects.isEmpty {
+                ContentUnavailableView {
+                    Label("No Results", systemImage: "magnifyingglass")
+                } description: {
+                    Text("No project's name has “\(search.trimmingCharacters(in: .whitespaces))” in it.")
                 }
             }
         }
@@ -246,8 +294,25 @@ public struct PlaygroundRoot: View {
                     .navigationTitle(store.projects.first(where: { $0.id == id })?.name ?? "Project")
                     .inlineTitle()
             }
+        } else if hasProjects {
+            Barred {
+                ContentUnavailableView {
+                    Label("No Project Open", systemImage: "app.dashed")
+                } description: {
+                    Text("Pick a project in the sidebar, or make a new one.")
+                } actions: {
+                    Button("New Project") { showNewProject = true }
+                        .accessibilityIdentifier("placeholder-new-project")
+                }
+            }
         } else {
-            Barred { Placeholder(text: hasProjects ? "Select a project, or make a new one" : "This platform has no compiler yet") }
+            Barred {
+                ContentUnavailableView {
+                    Label("No Compiler Here", systemImage: "hammer")
+                } description: {
+                    Text("The Playground can't build a project on this platform yet.")
+                }
+            }
         }
     }
 
@@ -349,14 +414,17 @@ struct ProjectView: View {
                 Button { showEditor = true } label: { Image(systemName: "pencil") }
                     .accessibilityLabel("Edit")
                     .accessibilityIdentifier("edit")
+                    .help("Edit App.swift")
                 if PlaygroundHost.service?.canRunOnWeb() == true {
                     Button { run(onWeb: true) } label: { Image(systemName: "globe") }
                         .accessibilityLabel("Run on the web")
                         .accessibilityIdentifier("run-web")
+                        .help("Run on the web")
                 }
                 Button { run() } label: { Image(systemName: "play.fill") }
                     .accessibilityLabel("Run")
                     .accessibilityIdentifier("run")
+                    .help("Run")
             }
         }
         .disabled(compiling)
@@ -387,6 +455,11 @@ struct ProjectView: View {
             WebRunSheet(url: webRun, title: session.store.projects.first(where: { $0.id == session.projectID })?.name ?? "Project")
         }
         .runCover(isPresented: $running)
+        // Project › Run (⌘R): this project, the one open.
+        .onChange(of: PlaygroundActions.shared.runRequests) { _ in
+            guard !compiling, !running else { return }
+            run()
+        }
         .onAppear {
             guard runAtLaunch, !ranAtLaunch else { return }
             ranAtLaunch = true
