@@ -349,12 +349,15 @@ on a phone.
 
 ## Editor
 
-The iOS editor is a `UITextView` (`CodeEditor.swift`) set up for code:
+The editor (`apple/host/CodeEditor.swift`, the iPhone's and the Mac's) is
+one SwiftUI view over the platform's text view, a `UITextView` on the
+iPhone and an `NSTextView` in an `NSScrollView` on the Mac, set up for code:
 smart quotes/dashes, autocorrect, auto-capitalization and spell-check OFF
-(the keyboard would otherwise turn `"` into `“`), an ASCII-capable keyboard,
-Return keeps the previous line's indentation (+4 after `{`), and a **coding
-keyboard** accessory row above the keyboard with the characters code needs
-(`" ' { } ( ) [ ] < > = : ; . , _ \ / $ ! ? & | * + - @ #`, Tab, hide).
+(the keyboard would otherwise turn `"` into `“`), Return keeps the previous
+line's indentation (+4 after `{`); on the iPhone an ASCII-capable keyboard
+and a **coding keyboard** accessory row above it with the characters code
+needs (`" ' { } ( ) [ ] < > = : ; . , _ \ / $ ! ? & | * + - @ #`, Tab,
+hide); on the Mac undo and the find bar (⌘F).
 Syntax highlighting is a built-in single-pass Swift lexer over
 `NSAttributedString` (keywords, Capitalized types, strings with `\( )`
 interpolation left plain, `//` and nesting `/* */` comments, numbers,
@@ -370,8 +373,8 @@ because the embedded frontend is process-global state and its diagnostics
 capture dup2s fds 1+2. `ISO_PLAYGROUND_AUTORUN=check` logs the check for
 every file (headless verification).
 
-Build failures present full-screen in a read-only, selectable, wrapping
-monospaced text view (`ReadOnlyCodeText`, a UITextView) with Done.
+Build failures present in a sheet of read-only, selectable, wrapping
+monospaced text (shared/app's `BuildDiagnosticsSheet`) with Done.
 
 RSPM alternatives, if a richer editor is wanted (all resolvable through the
 `swift_package` extension the way isomer's examples' `proto_greeter` pulls

@@ -428,8 +428,9 @@ struct ProjectView: View {
     }
 }
 
-/// The platform's code editor: the host's where it has one (the iOS
-/// Playground's highlighted UITextView, the web page's), else a TextEditor.
+/// The platform's code editor: the host's where it has one (the Apple apps'
+/// highlighted UITextView or NSTextView, apple/host/CodeEditor.swift), the
+/// web page's and Android's highlighted one, else a TextEditor.
 struct CodeEditorView: View {
     @Binding var text: String
     let fileName: String
