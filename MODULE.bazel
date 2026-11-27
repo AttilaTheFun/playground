@@ -12,7 +12,7 @@ the release's tag; AgentUI and Shireworks' kit by version there too.
 
 module(
     name = "playground",
-    version = "0.51.0",
+    version = "0.52.0",
 )
 
 bazel_dep(name = "isomer", version = "0.61.1")
