@@ -155,7 +155,7 @@ build --macos_minimum_os=15.0
 
 
 # The Apple targets built on Linux with rules_applecross (MODULE.bazel), on
-# a builder that has Xcode 27.0's SDK archive: its .bazelrc.user says where
+# a builder that has Xcode 27.2's SDK archive: its .bazelrc.user says where
 # (`--distdir`, or a `--downloader_config` to a server that has it) and turns
 # this on with `build:linux --config=apple_on_linux`. Without it (CI, on
 # GitHub's runners, which builds the Apple targets on GitHub's Macs with
