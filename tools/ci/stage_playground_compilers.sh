@@ -49,7 +49,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 IOS_SIMULATOR_TOOLCHAIN=1eb52eb470019b2ac3066a93955e562afe19d295e4b30585c73cd5892c048c4d
 IOS_DEVICE_TOOLCHAIN=d864eaa5b9f259305bf19adc6a3584093c847df896624bb09bb7a9a1d84c1157
-MACOS_TOOLCHAIN=7141924e3dfcfbacf63751f2327f256a2d35050e13979665c8612f297629a54a
+MACOS_TOOLCHAIN=f505d6f9b0ae4f715eae88bdf3ca335e5586ba0ab46c72eab0dbdbce00ad2efa
 ANDROID_TOOLCHAIN=c8feabf8c6f379f4da714b9d1ed7915bfdc2cf9d02c90465bafb05278581f8b4
 # tools/playground_toolchain/build_android_in_container.sh x86_64's
 # native-x86_64.tar.zst (2026-11-10, a Shireworks container).
