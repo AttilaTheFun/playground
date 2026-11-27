@@ -1,7 +1,8 @@
 // The project's main file in a modal editor: Cancel (confirming when there
 // are unsaved edits) / Save, and any extra bar items the app adds (Share on
-// iOS). The editor VIEW is injected — the iOS Playground's UITextView-backed
-// CodeEditor, a TextEditor elsewhere — so the sheet is the same on both.
+// iOS). The editor VIEW is injected — the Apple apps' highlighted CodeEditor,
+// the web's and Android's, a TextEditor elsewhere — so the sheet is the same
+// on every platform.
 
 import SwiftUI
 
@@ -32,9 +33,7 @@ public struct ProjectEditorSheet<Editor: View, Extra: View>: View {
         NavigationStack {
             editor($text)
                 .navigationTitle(fileName)
-                #if !os(macOS)
-                .navigationBarTitleDisplayMode(.inline)
-                #endif
+                .inlineTitle()
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
                         Button("Cancel") {
@@ -90,9 +89,7 @@ public struct BuildDiagnosticsSheet: View {
                     .padding()
             }
             .navigationTitle("Build failed")
-            #if !os(macOS)
-            .navigationBarTitleDisplayMode(.inline)
-            #endif
+            .inlineTitle()
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
         }
     }

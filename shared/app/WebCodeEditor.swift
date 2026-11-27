@@ -1,7 +1,7 @@
 // The web code editor: a host view the React renderer draws as a textarea
 // over a syntax-highlighted underlay (`codeeditor` in dom_renderer.js) —
-// the same `CodeEditor(text:fileName:)` shape as the iOS Playground's
-// UITextView-backed editor, so the shared editor sheet injects either.
+// the same `CodeEditor(text:fileName:)` shape as the Apple apps' editor
+// (apple/host/CodeEditor.swift), so the shared editor sheet injects either.
 
 import Isomer
 import SwiftUI
