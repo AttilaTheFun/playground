@@ -424,8 +424,6 @@ jobs:
         with:
           name: proof-apps-ios
           path: ${{ runner.temp }}/apps/ios
-      - name: A phone
-        run: agent-sim phones up 1
       - name: The proof's iPhone pictures
         run: >-
           tools/ci/proof.sh --stage shoot --platform ios --kind "$PROOF_KIND"
