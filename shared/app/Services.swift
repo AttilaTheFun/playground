@@ -32,10 +32,11 @@ public protocol PlaygroundHostService {
     /// UserDefaults are its own.
     func run(project: String) async throws -> String
     func stop()
-    /// Whether the host can also run the build in the platform's browser
-    /// (a native app serving the page, as the iOS Playground does).
+    /// Whether the host can also serve the build as a web page (a native
+    /// app serving the page itself: the iPhone, the Mac, Android).
     func canRunOnWeb() -> Bool
-    /// Opens the last successful build in the browser; returns a status line.
+    /// Serves the last successful build as a web page and returns its URL,
+    /// which the shell shows in its web-run sheet (WebRunSheet).
     func runOnWeb() async throws -> String
     /// The running build's log lines (load status, print() output).
     func logs() -> String
