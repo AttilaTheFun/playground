@@ -6,13 +6,14 @@
 #   app's libraries added (tools/ci/job_tools.sh): Google's Android SDK and
 #   NDK tools, and the hermetic JDK, are x86_64 programs, which GitHub's
 #   arm64 runners have nothing to run (no Rosetta);
-# - apple: on GitHub's `xcode-27` Macs (a standard runner, free for a public
-#   repository), with their own Xcode: Apple's SDKs may not be
-#   redistributed, so CI never takes the SDK archive the Apple targets take
-#   on Linux (rules_applecross, .bazelrc's apple_on_linux, for a builder
-#   that has it). On a Mac the Mac app's compiler is the one Bazel assembles
-#   from the building Mac's toolchains (shared/compiler/toolchain.bzl), so
-#   nothing is staged for it.
+# - apple: on Nimbus' self-hosted Linux runners (the owner, 2026-11-27: no
+#   paid GitHub runners), with rules_applecross (.bazelrc's apple_on_linux)
+#   and Xcode 27.2's SDK served by Nimbus (ISOMER_APPLE_ON_LINUX=1, which
+#   .github/actions/nimbus_bazel sets): Apple's SDKs may not be
+#   redistributed, so no GitHub runner takes the archive. The Mac app's
+#   compiler there is the staged one (stage_playground_compilers.sh macos),
+#   as a Mac app built on Linux takes; on a Mac, the one Bazel assembles
+#   from the building Mac's toolchains (shared/compiler/toolchain.bzl).
 # Bazel's settings (its caches in GitHub's cache, BuildBuddy's on main, the
 # downloads) are tools/ci/ci_bazel.sh's, written before this runs (the
 # workflow's .github/actions/bazel_cache). Nothing of Shireworks.
@@ -75,8 +76,8 @@ for platform in $platforms; do
     if [ "$(uname -s)" = Darwin ] && [ "$platform" != apple ]; then
         echo "container_build.sh: a Mac builds the Apple platforms alone here; $platform is built on Linux" >&2; exit 2
     fi
-    if [ "$(uname -s)" != Darwin ] && [ "$platform" = apple ]; then
-        echo "container_build.sh: the Apple platforms are built on a Mac, with its Xcode" >&2; exit 2
+    if [ "$(uname -s)" != Darwin ] && [ "$platform" = apple ] && [ "${ISOMER_APPLE_ON_LINUX:-}" != 1 ]; then
+        echo "container_build.sh: the Apple platforms are built on a Mac, or on Linux with Xcode's SDK served (ISOMER_APPLE_ON_LINUX=1: a Nimbus runner)" >&2; exit 2
     fi
 done
 has() { [[ $platforms == *" $1 "* ]]; }
